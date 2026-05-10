@@ -36,6 +36,15 @@ WLD/        recovery capsule
 - `GET /api/v1/workloads/:id`
 - `POST /api/v1/workloads`
 - `POST /api/v1/workloads/:id/stop`
+- `POST /api/v1/providers/:name/sync`
+- `GET /api/v1/providers/:name/instances`
+- `POST /api/v1/providers/:name/instances`
+- `POST /api/v1/providers/:name/instances/:instanceId/stop`
+- `POST /api/v1/usage/events`
+- `GET /api/v1/usage`
+- `GET /api/v1/billing/estimate`
+- `GET /api/v1/billing/invoices`
+- `POST /api/v1/billing/invoices/generate`
 
 ## Important Backend Files
 
@@ -45,7 +54,12 @@ WLD/        recovery capsule
 - `apps/api/src/storage/memory-store.ts`: default in-memory store
 - `apps/api/src/storage/postgres-store.ts`: PostgreSQL store
 - `apps/api/src/storage/index.ts`: store factory
+- `apps/api/src/providers/adapter.ts`: provider adapter interface
+- `apps/api/src/providers/thunder-compute.ts`: Thunder Compute HTTP client
+- `apps/api/src/providers/registry.ts`: provider adapter registry
+- `apps/api/src/providers/planned-adapters.ts`: stubs for GCP, AWS, Yandex, etc.
 - `apps/api/src/services/routing-engine.ts`: routing algorithm
+- `apps/api/src/services/billing-engine.ts`: billing/invoice logic
 - `apps/api/src/routes/*.ts`: HTTP routes
 - `apps/api/src/scripts/migrate.ts`: SQL migration runner
 

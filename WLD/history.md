@@ -1,5 +1,45 @@
 # Work History
 
+## 2026-05-10 - Provider Integration, Dashboard, Billing
+
+Focus:
+
+- Full-stack sprint: provider adapter framework, Thunder Compute integration, interactive dashboard, billing engine.
+
+Completed:
+
+- Git repository initialized and first commit made.
+- Provider adapter framework (`apps/api/src/providers/adapter.ts`) with `ProviderAdapter` interface.
+- Thunder Compute adapter with real API client (`apps/api/src/providers/thunder-compute.ts`) calling `https://api.thundercompute.com:8443/v1`.
+- Provider registry and bridge routes (`/api/v1/providers/:name/sync`, `/instances`, `/instances/:id/stop`).
+- Added `updateProviderCapabilities` to `EraStore` interface and both MemoryStore / PostgresStore.
+- Interactive Next.js dashboard with tabs: Workloads, Providers, Tenants, Billing.
+- API client layer (`apps/web/app/api-client.ts`) for typed frontend→backend communication.
+- Billing engine with usage events, projected spend estimates, and invoice generation.
+- Billing API endpoints: `POST /api/v1/usage/events`, `GET /api/v1/usage`, `GET /api/v1/billing/estimate`, `GET /api/v1/billing/invoices`, `POST /api/v1/billing/invoices/generate`.
+- Planned provider adapter stubs for GCP, AWS, Alibaba, Oracle, Cloud.ru, Selectel, Yandex Cloud.
+- Added `SUPPORTED_PROVIDERS` list to `@era/common` shared package.
+- Added `.env.example` entries for Thunder API credentials.
+
+Verification:
+
+- `npm.cmd run typecheck` passed.
+- `npm.cmd test` passed with 5 tests.
+- `npm.cmd run build` passed (API + Next.js production build).
+- Frontend compiles and builds via Turbopack.
+
+Blockers:
+
+- PostgreSQL not running (DLL init error on Windows). PostgresStore compiles but remains unvalidated against live DB.
+- Thunder adapter not tested against live API (needs `THUNDER_API_TOKEN`).
+- Planned provider adapters are stubs — need per-provider API clients and credentials.
+
+Next action:
+
+- Test Thunder Compute adapter end-to-end with real API token.
+- Implement real API clients for GCP, AWS, Yandex Cloud, etc.
+- PostgreSQL validation (Docker or cloud PG).
+
 ## 2026-05-10 - WLD Folder Capsule
 
 Focus:

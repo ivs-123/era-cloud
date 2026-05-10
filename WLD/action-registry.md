@@ -16,6 +16,46 @@ This registry tracks meaningful project actions and the artifacts they changed.
 
 Action:
 
+- Full-stack integration sprint: providers, dashboard, billing, Git.
+
+Files/Areas:
+
+- `apps/api/src/providers/adapter.ts`
+- `apps/api/src/providers/thunder-compute.ts`
+- `apps/api/src/providers/registry.ts`
+- `apps/api/src/providers/planned-adapters.ts`
+- `apps/api/src/routes/provider-bridge.ts`
+- `apps/api/src/routes/billing.ts`
+- `apps/api/src/services/billing-engine.ts`
+- `apps/api/src/storage/store.ts`
+- `apps/api/src/storage/memory-store.ts`
+- `apps/api/src/storage/postgres-store.ts`
+- `apps/api/src/config.ts`
+- `apps/api/src/app.ts`
+- `apps/web/app/page.tsx`
+- `apps/web/app/api-client.ts`
+- `apps/web/app/styles.css`
+- `packages/common/src/index.ts`
+- `.env.example`
+- `.git/`
+
+Verification:
+
+- `npm.cmd run typecheck`
+- `npm.cmd test`
+- `npm.cmd run build`
+
+Notes:
+
+- Git initialized, 2 commits.
+- 19 API endpoints implemented.
+- 8 providers defined (1 live + 7 planned).
+- Billing engine with metering/invoice generation.
+
+### 2026-05-10
+
+Action:
+
 - Created WLD recovery capsule folder.
 
 Files/Areas:
