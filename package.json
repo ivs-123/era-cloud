@@ -1,0 +1,32 @@
+{
+  "name": "era-cloud",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Unified control plane for compute, inference, and server capacity across multiple providers.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @era/api",
+    "dev:api": "npm run dev --workspace @era/api",
+    "dev:web": "npm run dev --workspace @era/web",
+    "build": "npm run build --workspace @era/common && npm run build --workspace @era/api && npm run build --workspace @era/web",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f postgres",
+    "db:migrate": "npm run migrate --workspace @era/api",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run build --workspace @era/common && npm run typecheck --workspace @era/api && npm run typecheck --workspace @era/web"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.4.5",
+    "pg": "^8.20.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.20.0"
+  }
+}
