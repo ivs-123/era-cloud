@@ -1,12 +1,14 @@
 import { nanoid } from "nanoid";
 import type { ProviderCapability, WorkloadState } from "@era/common";
-import type { EraStore, ProviderRecord, RoutingDecisionRecord, TenantRecord, WorkloadRecord } from "./store.js";
+import type { EraStore, InvoiceRecord, ProviderRecord, RoutingDecisionRecord, TenantRecord, UsageEventRecord, WorkloadRecord } from "./store.js";
 
 export class MemoryStore implements EraStore {
   private tenants = new Map<string, TenantRecord>();
   private providers = new Map<string, ProviderRecord>();
   private workloads = new Map<string, WorkloadRecord>();
   private routingDecisions = new Map<string, RoutingDecisionRecord>();
+  private usageEvents = new Map<string, UsageEventRecord>();
+  private invoices = new Map<string, InvoiceRecord>();
 
   async createTenant(input: { name: string }): Promise<TenantRecord> {
     const tenant: TenantRecord = {
@@ -51,6 +53,25 @@ export class MemoryStore implements EraStore {
 
   async listProviders(): Promise<ProviderRecord[]> {
     return [...this.providers.values()];
+  }
+
+  async updateProviderCapabilities(id: string, capabilityDetails: ProviderCapability[], status: string): Promise<ProviderRecord> {
+    const provider = this.providers.get(id);
+
+    if (!provider) {
+      throw new Error(`Provider ${id} not found`);
+    }
+
+    const updated: ProviderRecord = {
+      ...provider,
+      status: status as ProviderRecord["status"],
+      capabilityDetails,
+      capabilities: [...new Set(capabilityDetails.map((capability) => capability.profile))],
+      regions: [...new Set(capabilityDetails.map((capability) => capability.region))]
+    };
+
+    this.providers.set(id, updated);
+    return updated;
   }
 
   async createWorkload(input: Omit<WorkloadRecord, "id" | "createdAt" | "updatedAt">): Promise<WorkloadRecord> {
@@ -104,5 +125,48 @@ export class MemoryStore implements EraStore {
 
   async listRoutingDecisions(): Promise<RoutingDecisionRecord[]> {
     return [...this.routingDecisions.values()];
+  }
+
+  async recordUsageEvent(input: Omit<UsageEventRecord, "id">): Promise<UsageEventRecord> {
+    const event: UsageEventRecord = {
+      ...input,
+      id: `use_${nanoid(10)}`
+    };
+
+    this.usageEvents.set(event.id, event);
+    return event;
+  }
+
+  async listUsageEvents(params: { tenantId: string; from?: string; to?: string }): Promise<UsageEventRecord[]> {
+    return [...this.usageEvents.values()]
+      .filter((event) => event.tenantId === params.tenantId)
+      .filter((event) => {
+        if (params.from && event.eventTime < params.from) return false;
+        if (params.to && event.eventTime > params.to) return false;
+        return true;
+      })
+      .sort((a, b) => b.eventTime.localeCompare(a.eventTime));
+  }
+
+  async createInvoice(input: Omit<InvoiceRecord, "id">): Promise<InvoiceRecord> {
+    const invoice: InvoiceRecord = {
+      ...input,
+      id: `inv_${nanoid(10)}`
+    };
+
+    this.invoices.set(invoice.id, invoice);
+    return invoice;
+  }
+
+  async listInvoices(params: { tenantId?: string }): Promise<InvoiceRecord[]> {
+    const invoices = [...this.invoices.values()];
+
+    if (params.tenantId) {
+      return invoices
+        .filter((invoice) => invoice.tenantId === params.tenantId)
+        .sort((a, b) => (b.issuedAt ?? "").localeCompare(a.issuedAt ?? ""));
+    }
+
+    return invoices.sort((a, b) => (b.issuedAt ?? "").localeCompare(a.issuedAt ?? ""));
   }
 }

@@ -54,18 +54,60 @@ export interface RoutingDecisionRecord {
   createdAt: string;
 }
 
+export interface UsageEventRecord {
+  id: string;
+  tenantId: string;
+  workloadId: string;
+  providerId: string;
+  eventTime: string;
+  metric: string;
+  quantity: number;
+  unitCostUsd: number;
+}
+
+export interface InvoiceRecord {
+  id: string;
+  tenantId: string;
+  billingPeriodId: string;
+  subtotalUsd: number;
+  markupUsd: number;
+  totalUsd: number;
+  currency: string;
+  status: "draft" | "issued" | "paid" | "void";
+  issuedAt?: string;
+  lines: InvoiceLineRecord[];
+}
+
+export interface InvoiceLineRecord {
+  id: string;
+  invoiceId: string;
+  workloadId?: string;
+  providerId?: string;
+  description: string;
+  quantity: number;
+  unitPriceUsd: number;
+  amountUsd: number;
+}
+
 export interface EraStore {
   createTenant(input: { name: string }): Promise<TenantRecord>;
   listTenants(): Promise<TenantRecord[]>;
   getTenant(id: string): Promise<TenantRecord | undefined>;
   createProvider(input: Omit<ProviderRecord, "id" | "createdAt" | "capabilityDetails"> & { capabilityDetails?: ProviderCapability[] }): Promise<ProviderRecord>;
   listProviders(): Promise<ProviderRecord[]>;
+  updateProviderCapabilities(id: string, capabilityDetails: ProviderCapability[], status: string): Promise<ProviderRecord>;
   createWorkload(input: Omit<WorkloadRecord, "id" | "createdAt" | "updatedAt">): Promise<WorkloadRecord>;
   listWorkloads(): Promise<WorkloadRecord[]>;
   getWorkload(id: string): Promise<WorkloadRecord | undefined>;
   updateWorkloadState(id: string, state: WorkloadState): Promise<WorkloadRecord | undefined>;
   createRoutingDecision(input: Omit<RoutingDecisionRecord, "id" | "createdAt">): Promise<RoutingDecisionRecord>;
   listRoutingDecisions(): Promise<RoutingDecisionRecord[]>;
+
+  recordUsageEvent(input: Omit<UsageEventRecord, "id">): Promise<UsageEventRecord>;
+  listUsageEvents(params: { tenantId: string; from?: string; to?: string }): Promise<UsageEventRecord[]>;
+  createInvoice(input: Omit<InvoiceRecord, "id">): Promise<InvoiceRecord>;
+  listInvoices(params: { tenantId?: string }): Promise<InvoiceRecord[]>;
+
   close?(): Promise<void>;
 }
 

@@ -1,7 +1,7 @@
 import { nanoid } from "nanoid";
 import pg from "pg";
 import type { ProviderCapability, WorkloadState } from "@era/common";
-import type { EraStore, ProviderRecord, RoutingDecisionRecord, TenantRecord, WorkloadRecord } from "./store.js";
+import type { EraStore, InvoiceLineRecord, InvoiceRecord, ProviderRecord, RoutingDecisionRecord, TenantRecord, UsageEventRecord, WorkloadRecord } from "./store.js";
 
 const { Pool } = pg;
 
@@ -125,6 +125,52 @@ export class PostgresStore implements EraStore {
     return result.rows.map((row) => mapProvider(row, row.capability_details));
   }
 
+  async updateProviderCapabilities(
+    id: string,
+    capabilityDetails: ProviderCapability[],
+    status: string
+  ): Promise<ProviderRecord> {
+    const client = await this.pool.connect();
+
+    try {
+      await client.query("begin");
+      await client.query("update providers set status = $2 where id = $1", [id, status]);
+      await client.query("delete from provider_capabilities where provider_id = $1", [id]);
+
+      for (const capability of capabilityDetails) {
+        await client.query(
+          `insert into provider_capabilities
+            (id, provider_id, region, profile, price_unit, price_value, latency_p50_ms, is_available)
+           values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            `cap_${nanoid(10)}`,
+            id,
+            capability.region,
+            capability.profile,
+            capability.priceUnit,
+            capability.priceValueUsd,
+            capability.latencyP50Ms ?? null,
+            capability.isAvailable
+          ]
+        );
+      }
+
+      await client.query("commit");
+
+      const providerResult = await client.query(
+        "select id, name, type, status, config_json, created_at from providers where id = $1",
+        [id]
+      );
+
+      return mapProvider(providerResult.rows[0], capabilityDetails);
+    } catch (error) {
+      await client.query("rollback");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   async createWorkload(input: Omit<WorkloadRecord, "id" | "createdAt" | "updatedAt">): Promise<WorkloadRecord> {
     const result = await this.pool.query(
       `insert into workloads
@@ -190,6 +236,109 @@ export class PostgresStore implements EraStore {
     const result = await this.pool.query("select * from routing_decisions order by created_at desc");
     return result.rows.map(mapRoutingDecision);
   }
+
+  async recordUsageEvent(input: Omit<UsageEventRecord, "id">): Promise<UsageEventRecord> {
+    const result = await this.pool.query(
+      `insert into usage_events (id, tenant_id, workload_id, provider_id, event_time, metric, quantity, unit_cost_usd)
+       values ($1, $2, $3, $4, $5, $6, $7, $8) returning *`,
+      [`use_${nanoid(10)}`, input.tenantId, input.workloadId, input.providerId, input.eventTime, input.metric, input.quantity, input.unitCostUsd]
+    );
+
+    return mapUsageEvent(result.rows[0]);
+  }
+
+  async listUsageEvents(params: { tenantId: string; from?: string; to?: string }): Promise<UsageEventRecord[]> {
+    const conditions = ["tenant_id = $1"];
+    const values: unknown[] = [params.tenantId];
+
+    if (params.from) {
+      conditions.push(`event_time >= $${values.length + 1}`);
+      values.push(params.from);
+    }
+
+    if (params.to) {
+      conditions.push(`event_time <= $${values.length + 1}`);
+      values.push(params.to);
+    }
+
+    const result = await this.pool.query(
+      `select * from usage_events where ${conditions.join(" and ")} order by event_time desc`,
+      values
+    );
+
+    return result.rows.map(mapUsageEvent);
+  }
+
+  async createInvoice(input: Omit<InvoiceRecord, "id">): Promise<InvoiceRecord> {
+    const client = await this.pool.connect();
+    const invoiceId = `inv_${nanoid(10)}`;
+
+    try {
+      await client.query("begin");
+      await client.query(
+        `insert into invoices (id, tenant_id, billing_period_id, subtotal_usd, markup_usd, total_usd, currency, status, issued_at)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          invoiceId,
+          input.tenantId,
+          input.billingPeriodId,
+          input.subtotalUsd,
+          input.markupUsd,
+          input.totalUsd,
+          input.currency,
+          input.status,
+          input.issuedAt ?? null
+        ]
+      );
+
+      for (const line of input.lines) {
+        await client.query(
+          `insert into invoice_lines (id, invoice_id, workload_id, provider_id, description, quantity, unit_price_usd, amount_usd)
+           values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            `invl_${nanoid(10)}`,
+            invoiceId,
+            line.workloadId ?? null,
+            line.providerId ?? null,
+            line.description,
+            line.quantity,
+            line.unitPriceUsd,
+            line.amountUsd
+          ]
+        );
+      }
+
+      await client.query("commit");
+
+      return {
+        ...input,
+        id: invoiceId
+      };
+    } catch (error) {
+      await client.query("rollback");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async listInvoices(params: { tenantId?: string }): Promise<InvoiceRecord[]> {
+    const conditions: string[] = [];
+    const values: unknown[] = [];
+
+    if (params.tenantId) {
+      conditions.push(`tenant_id = $${values.length + 1}`);
+      values.push(params.tenantId);
+    }
+
+    const whereClause = conditions.length > 0 ? `where ${conditions.join(" and ")}` : "";
+    const result = await this.pool.query(
+      `select * from invoices ${whereClause} order by issued_at desc nulls last`,
+      values
+    );
+
+    return result.rows.map(mapInvoice);
+  }
 }
 
 function mapTenant(row: any): TenantRecord {
@@ -246,6 +395,34 @@ function mapRoutingDecision(row: any): RoutingDecisionRecord {
     candidateScores: row.candidate_scores_json,
     reasonCode: row.reason_code,
     createdAt: row.created_at.toISOString()
+  };
+}
+
+function mapUsageEvent(row: any): UsageEventRecord {
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    workloadId: row.workload_id,
+    providerId: row.provider_id,
+    eventTime: row.event_time instanceof Date ? row.event_time.toISOString() : String(row.event_time),
+    metric: row.metric,
+    quantity: Number(row.quantity),
+    unitCostUsd: Number(row.unit_cost_usd)
+  };
+}
+
+function mapInvoice(row: any): InvoiceRecord {
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    billingPeriodId: row.billing_period_id,
+    subtotalUsd: Number(row.subtotal_usd),
+    markupUsd: Number(row.markup_usd),
+    totalUsd: Number(row.total_usd),
+    currency: row.currency,
+    status: row.status,
+    issuedAt: row.issued_at instanceof Date ? row.issued_at.toISOString() : row.issued_at ?? undefined,
+    lines: []
   };
 }
 
