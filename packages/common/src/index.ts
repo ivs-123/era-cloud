@@ -6,13 +6,26 @@ export type WorkloadState = "provisioning" | "running" | "stopping" | "stopped" 
 
 export const SUPPORTED_PROVIDERS = [
   { id: "thunder-compute", name: "Thunder Compute", type: "server" as const, category: "gpu" },
-  { id: "gcp", name: "Google Cloud", type: "server" as const, category: "cloud" },
+  { id: "hetzner", name: "Hetzner Cloud", type: "server" as const, category: "gpu" },
+  { id: "runpod", name: "RunPod", type: "server" as const, category: "gpu" },
+  { id: "lambdalabs", name: "Lambda Labs", type: "server" as const, category: "gpu" },
+  { id: "vultr", name: "Vultr", type: "server" as const, category: "gpu" },
+  { id: "digitalocean", name: "DigitalOcean", type: "server" as const, category: "cloud" },
+  { id: "linode", name: "Linode / Akamai", type: "server" as const, category: "cloud" },
   { id: "aws", name: "Amazon Web Services", type: "server" as const, category: "cloud" },
-  { id: "alibaba", name: "Alibaba Cloud", type: "server" as const, category: "cloud" },
+  { id: "gcp", name: "Google Cloud", type: "server" as const, category: "cloud" },
+  { id: "azure", name: "Microsoft Azure", type: "server" as const, category: "cloud" },
   { id: "oracle", name: "Oracle Cloud", type: "server" as const, category: "cloud" },
+  { id: "ibm", name: "IBM Cloud", type: "server" as const, category: "cloud" },
+  { id: "alibaba", name: "Alibaba Cloud", type: "server" as const, category: "cloud" },
+  { id: "tencent", name: "Tencent Cloud", type: "server" as const, category: "cloud" },
+  { id: "huawei", name: "Huawei Cloud", type: "server" as const, category: "cloud" },
+  { id: "baidu", name: "Baidu Cloud", type: "server" as const, category: "cloud" },
+  { id: "yandex-cloud", name: "Yandex Cloud", type: "server" as const, category: "cloud" },
+  { id: "vk-cloud", name: "VK Cloud", type: "server" as const, category: "cloud" },
+  { id: "sbercloud", name: "SberCloud", type: "server" as const, category: "cloud" },
   { id: "cloud-ru", name: "Cloud.ru", type: "server" as const, category: "cloud" },
-  { id: "selectel", name: "Selectel", type: "server" as const, category: "cloud" },
-  { id: "yandex-cloud", name: "Yandex Cloud", type: "server" as const, category: "cloud" }
+  { id: "selectel", name: "Selectel", type: "server" as const, category: "cloud" }
 ] as const;
 
 export interface ProviderCapability {

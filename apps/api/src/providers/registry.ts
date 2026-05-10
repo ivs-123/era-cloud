@@ -1,5 +1,6 @@
 import type { ProviderAdapter } from "./adapter.js";
 import { ThunderComputeAdapter } from "./thunder-compute.js";
+import { allProviderAdapters } from "./all-adapters.js";
 
 export class ProviderRegistry {
   private adapters = new Map<string, ProviderAdapter>();
@@ -27,6 +28,10 @@ export function createProviderRegistry(config: { thunderApiUrl?: string; thunder
         apiToken: config.thunderApiToken
       })
     );
+  }
+
+  for (const adapter of allProviderAdapters) {
+    registry.register(adapter);
   }
 
   return registry;
