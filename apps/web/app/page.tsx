@@ -5,7 +5,7 @@ import { api, type ApiProvider, type ApiTenant, type ApiWorkload } from "./api-c
 import { useAuth } from "./auth.js";
 import WelcomePage from "./welcome.js";
 
-type Tab = "workloads" | "providers" | "tenants" | "billing" | "benchmark" | "keys" | "prefs";
+type Tab = "workloads" | "providers" | "instances" | "tenants" | "billing" | "benchmark" | "keys" | "prefs";
 
 export default function HomePage() {
   const auth = useAuth();
@@ -77,7 +77,7 @@ export default function HomePage() {
         <header className="topbar">
           <div>
             <p className="eyebrow">ERA Cloud</p>
-            <h2>{tab === "workloads" ? "Workloads" : tab === "providers" ? "Providers" : tab === "tenants" ? "Tenants" : tab === "billing" ? "Billing" : tab === "benchmark" ? "GPU Benchmark" : tab === "keys" ? "Keys (BYOK)" : "Routing Preferences"}</h2>
+            <h2>{tab === "workloads" ? "Workloads" : tab === "providers" ? "Providers" : tab === "instances" ? "Instances" : tab === "tenants" ? "Tenants" : tab === "billing" ? "Billing" : tab === "benchmark" ? "GPU Benchmark" : tab === "keys" ? "Keys (BYOK)" : "Routing Preferences"}</h2>
           </div>
           <div className="topbar-actions">
             <button type="button" onClick={fetchData} className="btn-ghost">Refresh</button>
@@ -106,6 +106,8 @@ export default function HomePage() {
           <WorkloadsTable workloads={workloads} providers={providers} onStopped={fetchData} />
         ) : tab === "providers" ? (
           <ProvidersTable providers={providers} onSynced={fetchData} />
+        ) : tab === "instances" ? (
+          <InstancesPanel providers={providers} />
         ) : tab === "billing" ? (
           <BillingPanel tenants={tenants} workloads={workloads} providers={providers} />
         ) : tab === "benchmark" ? (
@@ -137,6 +139,9 @@ function Sidebar({ tab, setTab }: { tab: Tab; setTab: (tab: Tab) => void }) {
         </a>
         <a href="#" onClick={(event_) => { event_.preventDefault(); setTab("providers"); }} className={tab === "providers" ? "nav-active" : ""}>
           Providers
+        </a>
+        <a href="#" onClick={(event_) => { event_.preventDefault(); setTab("instances"); }} className={tab === "instances" ? "nav-active" : ""}>
+          Instances
         </a>
         <a href="#" onClick={(event_) => { event_.preventDefault(); setTab("tenants"); }} className={tab === "tenants" ? "nav-active" : ""}>
           Tenants
@@ -842,6 +847,91 @@ function KeysPanel({ tenants }: { tenants: ApiTenant[] }) {
           ($200-2,000/mo depending on volume). Zero markup on compute costs.
         </p>
       </div>
+    </div>
+  );
+}
+
+function InstancesPanel({ providers }: { providers: ApiProvider[] }) {
+  const [instances, setInstances] = useState<Array<{
+    id: string; name: string; status: string; gpuType: string; numGpus: number;
+    cpuCores: number; memory: string; storage: number; ip?: string; template: string;
+    createdAt: string; providerName: string
+  }>>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState("");
+
+  const loadInstances = async (providerName: string) => {
+    setLoading(true);
+    try {
+      const r = await fetch(`http://localhost:4000/api/v1/providers/${providerName}/instances`);
+      const d = await r.json();
+      setInstances((d.data ?? []).map((i: Record<string, unknown>) => ({ ...i, providerName })));
+    } catch { setInstances([]); }
+    setLoading(false);
+  };
+
+  const gpuProviders = providers.filter(p => p.type === "server");
+
+  return (
+    <div>
+      <div style={{ marginBottom: 20, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <select
+          value={selectedProvider}
+          onChange={e => { setSelectedProvider(e.target.value); if (e.target.value) loadInstances(e.target.value); }}
+          style={{ border: "1px solid var(--line)", borderRadius: 6, font: "inherit", padding: "8px 10px" }}
+        >
+          <option value="">Select provider...</option>
+          {gpuProviders.map(p => (
+            <option key={p.id} value={p.name}>
+              {p.name} ({p.capabilityDetails.length} GPU profiles)
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {loading ? <p style={{ color: "var(--muted)" }}>Loading instances...</p> :
+       instances.length === 0 ? (
+        <div style={{
+          padding: 40, textAlign: "center", background: "var(--paper)",
+          border: "1px solid var(--line)", borderRadius: 8
+        }}>
+          <p style={{ color: "var(--muted)", fontSize: 15, margin: "0 0 8px" }}>
+            {selectedProvider
+              ? `No instances on ${selectedProvider}`
+              : "Select a provider to view its GPU instances"}
+          </p>
+          <p style={{ color: "var(--muted)", fontSize: 13 }}>
+            ERA Cloud shows your instances across all connected cloud providers in one place.
+          </p>
+        </div>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>Instance</th>
+              <th>Provider</th>
+              <th>GPU</th>
+              <th>Status</th>
+              <th>IP</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            {instances.map(i => (
+              <tr key={i.id}>
+                <td style={{ fontWeight: 600 }}>{i.name}</td>
+                <td>{i.providerName}</td>
+                <td style={{ fontFamily: "monospace", fontSize: 13 }}>
+                  {i.gpuType} × {i.numGpus}
+                </td>
+                <td><span className={`state ${i.status === "running" ? "healthy" : i.status}`}>{i.status}</span></td>
+                <td style={{ fontFamily: "monospace", fontSize: 13 }}>{i.ip ?? "-"}</td>
+                <td>{new Date(i.createdAt).toLocaleDateString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
