@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
 import type { ProviderCapability, WorkloadState } from "@era/common";
-import type { EraStore, InvoiceRecord, ProviderRecord, RoutingDecisionRecord, TenantRecord, UsageEventRecord, WorkloadRecord } from "./store.js";
+import type { EraStore, InvoiceRecord, ProviderRecord, RoutingDecisionRecord, TenantKeyRecord, TenantRecord, UsageEventRecord, WorkloadRecord } from "./store.js";
 
 export class MemoryStore implements EraStore {
   private tenants = new Map<string, TenantRecord>();
@@ -9,6 +9,7 @@ export class MemoryStore implements EraStore {
   private routingDecisions = new Map<string, RoutingDecisionRecord>();
   private usageEvents = new Map<string, UsageEventRecord>();
   private invoices = new Map<string, InvoiceRecord>();
+  private tenantKeys = new Map<string, TenantKeyRecord>();
 
   async createTenant(input: { name: string }): Promise<TenantRecord> {
     const tenant: TenantRecord = {
@@ -168,5 +169,24 @@ export class MemoryStore implements EraStore {
     }
 
     return invoices.sort((a, b) => (b.issuedAt ?? "").localeCompare(a.issuedAt ?? ""));
+  }
+
+  async addTenantKey(input: Omit<TenantKeyRecord, "id" | "createdAt">): Promise<TenantKeyRecord> {
+    const key: TenantKeyRecord = {
+      ...input,
+      id: `key_${nanoid(10)}`,
+      createdAt: new Date().toISOString()
+    };
+
+    this.tenantKeys.set(key.id, key);
+    return key;
+  }
+
+  async listTenantKeys(tenantId: string): Promise<TenantKeyRecord[]> {
+    return [...this.tenantKeys.values()].filter((key) => key.tenantId === tenantId);
+  }
+
+  async removeTenantKey(id: string): Promise<void> {
+    this.tenantKeys.delete(id);
   }
 }

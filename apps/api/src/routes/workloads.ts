@@ -11,7 +11,8 @@ const createWorkloadSchema = z.object({
   routing_policy: z.enum(["cheapest", "balanced", "low-latency"]),
   max_hourly_cost_usd: z.number().positive().optional(),
   latency_target_ms: z.number().int().positive().optional(),
-  metadata: z.record(z.string(), z.string()).default({})
+  metadata: z.record(z.string(), z.string()).default({}),
+  tenant_key_id: z.string().optional()
 });
 
 export async function registerWorkloadRoutes(app: FastifyInstance, store: EraStore) {
@@ -51,6 +52,56 @@ export async function registerWorkloadRoutes(app: FastifyInstance, store: EraSto
 
     if (!(await store.getTenant(body.tenant_id))) {
       return reply.code(404).send({ error: "TENANT_NOT_FOUND" });
+    }
+
+    if (body.tenant_key_id) {
+      const keys = await store.listTenantKeys(body.tenant_id);
+      const tenantKey = keys.find((key) => key.id === body.tenant_key_id);
+
+      if (!tenantKey) {
+        return reply.code(404).send({ error: "TENANT_KEY_NOT_FOUND" });
+      }
+
+      const byokProviderId = `byok_${tenantKey.id}`;
+
+      const workload = await store.createWorkload({
+        tenantId: body.tenant_id,
+        kind: body.kind,
+        profile: body.profile,
+        region: body.region,
+        routingPolicy: body.routing_policy,
+        state: "provisioning",
+        selectedProviderId: byokProviderId,
+        constraints: {
+          maxHourlyCostUsd: body.max_hourly_cost_usd,
+          latencyTargetMs: body.latency_target_ms
+        },
+        metadata: {
+          ...body.metadata,
+          byok_provider: tenantKey.providerName,
+          byok_key_id: tenantKey.id,
+          byok_mode: "true"
+        }
+      });
+
+      await store.createRoutingDecision({
+        tenantId: body.tenant_id,
+        workloadId: workload.id,
+        winnerProviderId: byokProviderId,
+        candidateScores: [],
+        reasonCode: "byok_direct_route"
+      });
+
+      return reply.code(201).send({
+        data: {
+          id: workload.id,
+          state: workload.state,
+          selected_provider_id: workload.selectedProviderId,
+          routing_reason: "byok_direct_route",
+          byok_provider: tenantKey.providerName,
+          created_at: workload.createdAt
+        }
+      });
     }
 
     try {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { api, type ApiProvider, type ApiTenant, type ApiWorkload } from "./api-client.js";
 
-type Tab = "workloads" | "providers" | "tenants" | "billing" | "benchmark";
+type Tab = "workloads" | "providers" | "tenants" | "billing" | "benchmark" | "keys";
 
 export default function HomePage() {
   const [tab, setTab] = useState<Tab>("workloads");
@@ -69,7 +69,7 @@ export default function HomePage() {
         <header className="topbar">
           <div>
             <p className="eyebrow">ERA Cloud</p>
-            <h2>{tab === "workloads" ? "Workloads" : tab === "providers" ? "Providers" : tab === "tenants" ? "Tenants" : tab === "billing" ? "Billing" : "GPU Benchmark"}</h2>
+            <h2>{tab === "workloads" ? "Workloads" : tab === "providers" ? "Providers" : tab === "tenants" ? "Tenants" : tab === "billing" ? "Billing" : tab === "benchmark" ? "GPU Benchmark" : "Keys (BYOK)"}</h2>
           </div>
           <div className="topbar-actions">
             <button type="button" onClick={fetchData} className="btn-ghost">Refresh</button>
@@ -102,6 +102,8 @@ export default function HomePage() {
           <BillingPanel tenants={tenants} workloads={workloads} providers={providers} />
         ) : tab === "benchmark" ? (
           <BenchmarkPanel />
+        ) : tab === "keys" ? (
+          <KeysPanel tenants={tenants} />
         ) : (
           <TenantsTable tenants={tenants} />
         )}
@@ -132,6 +134,9 @@ function Sidebar({ tab, setTab }: { tab: Tab; setTab: (tab: Tab) => void }) {
         </a>
         <a href="#" onClick={(event_) => { event_.preventDefault(); setTab("benchmark"); }} className={tab === "benchmark" ? "nav-active" : ""}>
           Benchmark
+        </a>
+        <a href="#" onClick={(event_) => { event_.preventDefault(); setTab("keys"); }} className={tab === "keys" ? "nav-active" : ""}>
+          Keys (BYOK)
         </a>
       </nav>
     </aside>
@@ -407,7 +412,20 @@ function CreateWorkloadForm({ tenants, providers, onCreated }: { tenants: ApiTen
   const [profile, setProfile] = useState("gpu-h100");
   const [region, setRegion] = useState("us-east-1");
   const [routingPolicy, setRoutingPolicy] = useState("balanced");
+  const [byokMode, setByokMode] = useState(false);
+  const [keyId, setKeyId] = useState("");
+  const [keys, setKeys] = useState<Array<{ id: string; key_label: string; provider_name: string }>>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  const loadKeys = async (tid: string) => {
+    try {
+      const r = await fetch(`http://localhost:4000/api/v1/keys?tenant_id=${encodeURIComponent(tid)}`);
+      const d = await r.json();
+      setKeys(d.data ?? []);
+    } catch { setKeys([]); }
+  };
+
+  useEffect(() => { loadKeys(tenantId); }, [tenantId]);
 
   const handleSubmit = async (event_: React.FormEvent) => {
     event_.preventDefault();
@@ -418,7 +436,8 @@ function CreateWorkloadForm({ tenants, providers, onCreated }: { tenants: ApiTen
         kind,
         profile,
         region,
-        routing_policy: routingPolicy
+        routing_policy: routingPolicy,
+        tenant_key_id: byokMode ? keyId : undefined
       });
       setOpen(false);
       onCreated();
@@ -434,7 +453,7 @@ function CreateWorkloadForm({ tenants, providers, onCreated }: { tenants: ApiTen
 
   return (
     <form onSubmit={handleSubmit} className="inline-form">
-      <select value={tenantId} onChange={(event_) => setTenantId(event_.target.value)}>
+      <select value={tenantId} onChange={(event_) => { setTenantId(event_.target.value); loadKeys(event_.target.value); }}>
         {tenants.map((tenant) => (
           <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
         ))}
@@ -457,12 +476,26 @@ function CreateWorkloadForm({ tenants, providers, onCreated }: { tenants: ApiTen
         onChange={(event_) => setRegion(event_.target.value)}
         required
       />
-      <select value={routingPolicy} onChange={(event_) => setRoutingPolicy(event_.target.value)}>
-        <option value="balanced">balanced</option>
-        <option value="cheapest">cheapest</option>
-        <option value="low-latency">low-latency</option>
-      </select>
-      <button type="submit" disabled={submitting || !tenantId}>
+      {!byokMode ? (
+        <select value={routingPolicy} onChange={(event_) => setRoutingPolicy(event_.target.value)}>
+          <option value="balanced">balanced</option>
+          <option value="cheapest">cheapest</option>
+          <option value="low-latency">low-latency</option>
+        </select>
+      ) : null}
+      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, whiteSpace: "nowrap" }}>
+        <input type="checkbox" checked={byokMode} onChange={(e) => setByokMode(e.target.checked)} />
+        BYOK
+      </label>
+      {byokMode && keys.length > 0 ? (
+        <select value={keyId} onChange={(e) => setKeyId(e.target.value)}>
+          <option value="">Select key...</option>
+          {keys.map((k) => (<option key={k.id} value={k.id}>{k.key_label} ({k.provider_name})</option>))}
+        </select>
+      ) : byokMode ? (
+        <span style={{ color: "var(--warning)", fontSize: 13 }}>No keys configured</span>
+      ) : null}
+      <button type="submit" disabled={submitting || !tenantId || (byokMode && !keyId)}>
         {submitting ? "Creating..." : "Save"}
       </button>
       <button type="button" className="btn-ghost" onClick={() => setOpen(false)}>
@@ -675,6 +708,113 @@ function BenchmarkPanel() {
           </table>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function KeysPanel({ tenants }: { tenants: ApiTenant[] }) {
+  const [selectedTenant, setSelectedTenant] = useState(tenants[0]?.id ?? "");
+  const [keys, setKeys] = useState<Array<{ id: string; provider_name: string; key_label: string; key_prefix: string; created_at: string }>>([]);
+  const [loading, setLoading] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newLabel, setNewLabel] = useState("");
+  const [newProvider, setNewProvider] = useState("aws");
+  const [newKeyValue, setNewKeyValue] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const loadKeys = async () => {
+    if (!selectedTenant) return;
+    setLoading(true);
+    try {
+      const r = await fetch(`http://localhost:4000/api/v1/keys?tenant_id=${encodeURIComponent(selectedTenant)}`);
+      const data = await r.json();
+      setKeys(data.data ?? []);
+    } catch { setKeys([]); }
+    setLoading(false);
+  };
+
+  useEffect(() => { loadKeys(); }, [selectedTenant]);
+
+  const addKey = async (event_: React.FormEvent) => {
+    event_.preventDefault();
+    setSubmitting(true);
+    try {
+      await fetch("http://localhost:4000/api/v1/keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tenant_id: selectedTenant,
+          provider_name: newProvider,
+          key_label: newLabel,
+          key_value: newKeyValue
+        })
+      });
+      setNewLabel(""); setNewKeyValue("");
+      setShowAdd(false);
+      loadKeys();
+    } catch {}
+    setSubmitting(false);
+  };
+
+  const removeKey = async (id: string) => {
+    await fetch(`http://localhost:4000/api/v1/keys/${id}`, { method: "DELETE" });
+    loadKeys();
+  };
+
+  const providers = ["aws", "gcp", "azure", "yandex-cloud", "vk-cloud", "cloud-ru", "selectel", "alibaba", "tencent", "oracle", "ibm"];
+
+  return (
+    <div>
+      <div style={{ marginBottom: 20, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <select value={selectedTenant} onChange={(e) => setSelectedTenant(e.target.value)} style={{ border: "1px solid var(--line)", borderRadius: 6, font: "inherit", padding: "8px 10px" }}>
+          {tenants.map((t) => (<option key={t.id} value={t.id}>{t.name}</option>))}
+        </select>
+        <button type="button" onClick={() => setShowAdd(!showAdd)}>{showAdd ? "Cancel" : "Add Key"}</button>
+      </div>
+
+      {showAdd ? (
+        <form onSubmit={addKey} className="inline-form" style={{ marginBottom: 20 }}>
+          <input type="text" placeholder="Label (e.g. AWS Production)" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} required />
+          <select value={newProvider} onChange={(e) => setNewProvider(e.target.value)}>
+            {providers.map((p) => (<option key={p} value={p}>{p}</option>))}
+          </select>
+          <input type="password" placeholder="API key / token" value={newKeyValue} onChange={(e) => setNewKeyValue(e.target.value)} required minLength={8} />
+          <button type="submit" disabled={submitting}>{submitting ? "Saving..." : "Save Key"}</button>
+        </form>
+      ) : null}
+
+      {loading ? <p style={{ color: "var(--muted)" }}>Loading...</p> : keys.length === 0 ? (
+        <p style={{ color: "var(--muted)" }}>No BYOK keys configured. Add your provider API keys to route workloads through your own accounts.</p>
+      ) : (
+        <table>
+          <thead>
+            <tr><th>Key ID</th><th>Label</th><th>Provider</th><th>Prefix</th><th>Created</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            {keys.map((key) => (
+              <tr key={key.id}>
+                <td style={{ fontFamily: "monospace", fontSize: 13 }}>{key.id}</td>
+                <td style={{ fontWeight: 600 }}>{key.key_label}</td>
+                <td>{key.provider_name}</td>
+                <td style={{ fontFamily: "monospace", fontSize: 13, color: "var(--muted)" }}>{key.key_prefix}</td>
+                <td>{new Date(key.created_at).toLocaleDateString()}</td>
+                <td>
+                  <button type="button" className="btn-sm btn-danger" onClick={() => removeKey(key.id)}>Remove</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <div style={{ marginTop: 24, padding: 18, background: "var(--paper)", border: "1px solid var(--line)", borderRadius: 8 }}>
+        <h3 style={{ margin: "0 0 8px" }}>How BYOK works</h3>
+        <p style={{ color: "var(--muted)", fontSize: 14, margin: 0, lineHeight: 1.6 }}>
+          <strong>Bring Your Own Key</strong> — you add your provider API keys. ERA Cloud routes workloads through your accounts.
+          You pay the provider directly, and ERA Cloud charges a <strong>fixed SaaS subscription</strong> for routing optimization
+          ($200-2,000/mo depending on volume). Zero markup on compute costs.
+        </p>
+      </div>
     </div>
   );
 }

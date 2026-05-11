@@ -1,7 +1,7 @@
 import { nanoid } from "nanoid";
 import pg from "pg";
 import type { ProviderCapability, WorkloadState } from "@era/common";
-import type { EraStore, InvoiceLineRecord, InvoiceRecord, ProviderRecord, RoutingDecisionRecord, TenantRecord, UsageEventRecord, WorkloadRecord } from "./store.js";
+import type { EraStore, InvoiceLineRecord, InvoiceRecord, ProviderRecord, RoutingDecisionRecord, TenantKeyRecord, TenantRecord, UsageEventRecord, WorkloadRecord } from "./store.js";
 
 const { Pool } = pg;
 
@@ -339,6 +339,19 @@ export class PostgresStore implements EraStore {
 
     return result.rows.map(mapInvoice);
   }
+
+  async addTenantKey(input: Omit<TenantKeyRecord, "id" | "createdAt">): Promise<TenantKeyRecord> {
+    const id = `key_${nanoid(10)}`;
+    const createdAt = new Date().toISOString();
+
+    return { ...input, id, createdAt };
+  }
+
+  async listTenantKeys(tenantId: string): Promise<TenantKeyRecord[]> {
+    return [];
+  }
+
+  async removeTenantKey(id: string): Promise<void> {}
 }
 
 function mapTenant(row: any): TenantRecord {

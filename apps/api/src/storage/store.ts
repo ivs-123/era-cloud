@@ -89,6 +89,15 @@ export interface InvoiceLineRecord {
   amountUsd: number;
 }
 
+export interface TenantKeyRecord {
+  id: string;
+  tenantId: string;
+  providerName: string;
+  keyLabel: string;
+  keyPrefix: string;
+  createdAt: string;
+}
+
 export interface EraStore {
   createTenant(input: { name: string }): Promise<TenantRecord>;
   listTenants(): Promise<TenantRecord[]>;
@@ -102,6 +111,10 @@ export interface EraStore {
   updateWorkloadState(id: string, state: WorkloadState): Promise<WorkloadRecord | undefined>;
   createRoutingDecision(input: Omit<RoutingDecisionRecord, "id" | "createdAt">): Promise<RoutingDecisionRecord>;
   listRoutingDecisions(): Promise<RoutingDecisionRecord[]>;
+
+  addTenantKey(input: Omit<TenantKeyRecord, "id" | "createdAt">): Promise<TenantKeyRecord>;
+  listTenantKeys(tenantId: string): Promise<TenantKeyRecord[]>;
+  removeTenantKey(id: string): Promise<void>;
 
   recordUsageEvent(input: Omit<UsageEventRecord, "id">): Promise<UsageEventRecord>;
   listUsageEvents(params: { tenantId: string; from?: string; to?: string }): Promise<UsageEventRecord[]>;

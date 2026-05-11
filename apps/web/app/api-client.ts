@@ -183,6 +183,7 @@ export const api = {
       max_hourly_cost_usd?: number;
       latency_target_ms?: number;
       metadata?: Record<string, string>;
+      tenant_key_id?: string;
     }) =>
       request<{ data: { id: string; state: string; selected_provider_id: string; routing_reason: string; created_at: string } }>(
         "/api/v1/workloads",
