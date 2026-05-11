@@ -71,8 +71,8 @@ export default function WelcomePage() {
             AI inference at the<br />lowest possible price
           </h1>
           <p style={{ fontSize: 18, color: "#a9b8ae", lineHeight: 1.6, marginTop: 16 }}>
-            Change one line of code. ERA Cloud auto-routes every request to the cheapest provider.
-            Same OpenAI SDK. 7x cheaper.
+            GPT-4o · Claude · DeepSeek · Llama · Gemini · Qwen · Mistral — any model,
+            any provider. Change one line of code. Same OpenAI SDK. Up to 10x cheaper.
           </p>
         </div>
 
@@ -142,11 +142,12 @@ client = OpenAI(
     api_key="${apiKey}",
     base_url="https://api.eracloud.pro/v1"
 )
-# That's it. Same OpenAI SDK, auto-routed to cheapest provider.
+# Any model. Any provider. Auto-routed to cheapest.
 response = client.chat.completions.create(
-    model="llama-3.3-70b",
+    model="gpt-4o-mini",
     messages=[{"role": "user", "content": "Hello!"}]
-)`;
+)
+print(response.era_routing["provider"])  # "openai" or whoever is cheapest`;
 
   const copyCode = () => {
     navigator.clipboard.writeText(codeExample);
@@ -205,7 +206,7 @@ response = client.chat.completions.create(
             <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#a9b8ae", fontSize: 14 }}>
               <span style={{ color: "#4ade80", fontWeight: 700 }}>python app.py</span>
               <span>→</span>
-              <span style={{ color: "white" }}>Response from Lepton AI ($0.32/1M tokens)</span>
+              <span style={{ color: "white" }}>Response routed to cheapest provider automatically</span>
             </div>
           </div>
           <div style={{ marginTop: 24 }}>
