@@ -18,6 +18,7 @@ export interface ProviderAdapter {
   readonly name: string;
   readonly type: ProviderType;
   readonly regions: string[];
+  readonly category?: "gpu" | "cloud" | "inference" | "edge" | "marketplace";
 
   healthCheck(): Promise<ProviderStatus>;
   syncCapabilities(): Promise<ProviderCapability[]>;

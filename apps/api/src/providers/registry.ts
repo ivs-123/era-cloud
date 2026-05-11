@@ -1,6 +1,7 @@
 import type { ProviderAdapter } from "./adapter.js";
 import { ThunderComputeAdapter } from "./thunder-compute.js";
 import { allProviderAdapters } from "./all-adapters.js";
+import { inferenceAdapters, edgeAdapters, marketplaceAdapters } from "./inference-adapters.js";
 
 export class ProviderRegistry {
   private adapters = new Map<string, ProviderAdapter>();
@@ -15,6 +16,10 @@ export class ProviderRegistry {
 
   list(): ProviderAdapter[] {
     return [...this.adapters.values()];
+  }
+
+  listByCategory(category: string): ProviderAdapter[] {
+    return [...this.adapters.values()].filter((a) => a.category === category);
   }
 }
 
@@ -31,6 +36,18 @@ export function createProviderRegistry(config: { thunderApiUrl?: string; thunder
   }
 
   for (const adapter of allProviderAdapters) {
+    registry.register(adapter);
+  }
+
+  for (const adapter of inferenceAdapters) {
+    registry.register(adapter);
+  }
+
+  for (const adapter of edgeAdapters) {
+    registry.register(adapter);
+  }
+
+  for (const adapter of marketplaceAdapters) {
     registry.register(adapter);
   }
 
