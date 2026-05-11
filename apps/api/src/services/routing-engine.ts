@@ -49,7 +49,9 @@ export function simulateRouting(
           const capCanonical = normalizeProfile(capability.profile);
           return capCanonical === canonicalProfile;
         })
-        .filter((capability) => capability.region === request.region)
+        .filter((capability) =>
+          request.region === "global" ? true : capability.region === request.region
+        )
         .filter((capability) => capability.isAvailable)
         .filter((capability) =>
           request.maxHourlyCostUsd === undefined

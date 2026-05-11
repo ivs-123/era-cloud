@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { api, type ApiProvider, type ApiTenant, type ApiWorkload } from "./api-client.js";
+import { useAuth } from "./auth.js";
 
 type Tab = "workloads" | "providers" | "tenants" | "billing" | "benchmark" | "keys";
 
 export default function HomePage() {
+  const auth = useAuth();
   const [tab, setTab] = useState<Tab>("workloads");
   const [tenants, setTenants] = useState<ApiTenant[]>([]);
   const [providers, setProviders] = useState<ApiProvider[]>([]);
@@ -14,6 +16,7 @@ export default function HomePage() {
   const [error, setError] = useState("");
 
   const fetchData = () => {
+    if (!auth.isAuthenticated) return;
     setLoading(true);
     setError("");
     Promise.all([
@@ -32,7 +35,11 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [auth.isAuthenticated]);
+
+  if (!auth.isAuthenticated) {
+    return <LoginScreen />;
+  }
 
   const runningWorkloads = workloads.filter((wl) => wl.state === "running" || wl.state === "provisioning");
   const healthyProviders = providers.filter((provider) => provider.status === "healthy");
@@ -113,6 +120,8 @@ export default function HomePage() {
 }
 
 function Sidebar({ tab, setTab }: { tab: Tab; setTab: (tab: Tab) => void }) {
+  const auth = useAuth();
+
   return (
     <aside className="sidebar">
       <div>
@@ -139,6 +148,18 @@ function Sidebar({ tab, setTab }: { tab: Tab; setTab: (tab: Tab) => void }) {
           Keys (BYOK)
         </a>
       </nav>
+      <div style={{ marginTop: "auto" }}>
+        <p style={{ color: "#a9b8ae", fontSize: 13, margin: 0 }}>
+          {auth.tenantId ? `Tenant: ${auth.tenantId.slice(0, 10)}...` : ""}
+        </p>
+        <button
+          type="button"
+          onClick={auth.logout}
+          style={{ background: "transparent", border: "1px solid #5a6b5e", color: "#a9b8ae", fontSize: 13, marginTop: 8, padding: "6px 12px" }}
+        >
+          Logout
+        </button>
+      </div>
     </aside>
   );
 }
@@ -818,3 +839,102 @@ function KeysPanel({ tenants }: { tenants: ApiTenant[] }) {
     </div>
   );
 }
+
+function LoginScreen() {
+  const auth = useAuth();
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [tenantName, setTenantName] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (event_: React.FormEvent) => {
+    event_.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      if (mode === "register") {
+        await auth.register(tenantName, email, password);
+      } else {
+        await auth.login(email, password);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Authentication failed");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{
+      minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+      background: "linear-gradient(135deg, #0c4a3a 0%, #17201b 100%)"
+    }}>
+      <div style={{
+        background: "white", borderRadius: 12, padding: 40, width: 420,
+        boxShadow: "0 20px 60px rgba(0,0,0,0.3)"
+      }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <p style={{ color: "var(--muted)", fontSize: 12, fontWeight: 700, textTransform: "uppercase", margin: 0 }}>
+            ERA Cloud
+          </p>
+          <h1 style={{ fontSize: 32, margin: "4px 0 0" }}>
+            {mode === "login" ? "Welcome back" : "Get started"}
+          </h1>
+          <p style={{ color: "var(--muted)", fontSize: 14, margin: "8px 0 0" }}>
+            {mode === "login" ? "Sign in to your control plane" : "Create your cloud control plane"}
+          </p>
+        </div>
+
+        {error ? (
+          <div style={{ background: "#ffe8e8", color: "#c53030", padding: "10px 14px", borderRadius: 6, marginBottom: 16, fontSize: 14 }}>
+            {error}
+          </div>
+        ) : null}
+
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {mode === "register" ? (
+            <input
+              type="text" placeholder="Company name" value={tenantName}
+              onChange={(e) => setTenantName(e.target.value)}
+              style={inputStyle} required minLength={2}
+            />
+          ) : null}
+          <input
+            type="email" placeholder="Email" value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={inputStyle} required
+          />
+          <input
+            type="password" placeholder="Password" value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={inputStyle} required minLength={8}
+          />
+          <button type="submit" disabled={loading} style={{
+            border: 0, borderRadius: 8, background: "var(--accent)", color: "white",
+            cursor: "pointer", font: "inherit", fontWeight: 600, padding: "14px",
+            fontSize: 16, marginTop: 4
+          }}>
+            {loading ? "Please wait..." : mode === "login" ? "Sign in" : "Create account"}
+          </button>
+        </form>
+
+        <p style={{ textAlign: "center", marginTop: 20, fontSize: 14, color: "var(--muted)" }}>
+          {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
+          <a
+            href="#"
+            onClick={(e) => { e.preventDefault(); setMode(mode === "login" ? "register" : "login"); setError(""); }}
+            style={{ color: "var(--accent)", fontWeight: 600 }}
+          >
+            {mode === "login" ? "Sign up" : "Sign in"}
+          </a>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+const inputStyle: React.CSSProperties = {
+  border: "1px solid var(--line)", borderRadius: 8, font: "inherit",
+  fontSize: 15, padding: "12px 14px", outline: "none"
+};
