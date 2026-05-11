@@ -9,6 +9,10 @@ import { registerWorkloadRoutes } from "./routes/workloads.js";
 import { registerBillingRoutes } from "./routes/billing.js";
 import { registerBenchmarkRoutes } from "./routes/benchmark.js";
 import { registerByokRoutes } from "./routes/byok.js";
+import { registerAuthRoutes } from "./routes/auth.js";
+import { registerInferenceRoutes } from "./routes/inference.js";
+import { registerAuthMiddleware } from "./middleware/auth.js";
+import { registerRateLimiter } from "./middleware/rate-limiter.js";
 import { loadConfig, type ApiConfig } from "./config.js";
 import { createStore } from "./storage/index.js";
 import { createProviderRegistry } from "./providers/registry.js";
@@ -32,7 +36,11 @@ export async function buildApp(config: ApiConfig = loadConfig()) {
     origin: true
   });
 
+  await registerRateLimiter(app);
+  await registerAuthMiddleware(app);
+
   await registerHealthRoutes(app);
+  await registerAuthRoutes(app, store);
   await registerTenantRoutes(app, store);
   await registerProviderRoutes(app, store);
   await registerRoutingRoutes(app, store);
@@ -41,6 +49,7 @@ export async function buildApp(config: ApiConfig = loadConfig()) {
   await registerBillingRoutes(app, store);
   await registerBenchmarkRoutes(app, store);
   await registerByokRoutes(app, store);
+  await registerInferenceRoutes(app, store);
 
   return app;
 }
