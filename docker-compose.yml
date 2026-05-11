@@ -16,6 +16,33 @@ services:
     volumes:
       - era_cloud_postgres_data:/var/lib/postgresql/data
 
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    container_name: era-cloud-api
+    ports:
+      - "4000:4000"
+    environment:
+      STORAGE_DRIVER: postgres
+      DATABASE_URL: postgres://era:era@postgres:5432/era_cloud
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: web
+    container_name: era-cloud-web
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+    depends_on:
+      - api
+
 volumes:
   era_cloud_postgres_data:
-
