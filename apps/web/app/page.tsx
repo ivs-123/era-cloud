@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { api, type ApiProvider, type ApiTenant, type ApiWorkload } from "./api-client.js";
 
-type Tab = "workloads" | "providers" | "tenants" | "billing";
+type Tab = "workloads" | "providers" | "tenants" | "billing" | "benchmark";
 
 export default function HomePage() {
   const [tab, setTab] = useState<Tab>("workloads");
@@ -69,7 +69,7 @@ export default function HomePage() {
         <header className="topbar">
           <div>
             <p className="eyebrow">ERA Cloud</p>
-            <h2>{tab === "workloads" ? "Workloads" : tab === "providers" ? "Providers" : tab === "tenants" ? "Tenants" : "Billing"}</h2>
+            <h2>{tab === "workloads" ? "Workloads" : tab === "providers" ? "Providers" : tab === "tenants" ? "Tenants" : tab === "billing" ? "Billing" : "GPU Benchmark"}</h2>
           </div>
           <div className="topbar-actions">
             <button type="button" onClick={fetchData} className="btn-ghost">Refresh</button>
@@ -100,6 +100,8 @@ export default function HomePage() {
           <ProvidersTable providers={providers} onSynced={fetchData} />
         ) : tab === "billing" ? (
           <BillingPanel tenants={tenants} workloads={workloads} providers={providers} />
+        ) : tab === "benchmark" ? (
+          <BenchmarkPanel />
         ) : (
           <TenantsTable tenants={tenants} />
         )}
@@ -127,6 +129,9 @@ function Sidebar({ tab, setTab }: { tab: Tab; setTab: (tab: Tab) => void }) {
         </a>
         <a href="#" onClick={(event_) => { event_.preventDefault(); setTab("billing"); }} className={tab === "billing" ? "nav-active" : ""}>
           Billing
+        </a>
+        <a href="#" onClick={(event_) => { event_.preventDefault(); setTab("benchmark"); }} className={tab === "benchmark" ? "nav-active" : ""}>
+          Benchmark
         </a>
       </nav>
     </aside>
@@ -566,6 +571,110 @@ function BillingPanel({ tenants, workloads, providers }: { tenants: ApiTenant[];
       ) : (
         <p style={{ color: "var(--muted)" }}>No invoices yet. Generate one to see billing data.</p>
       )}
+    </div>
+  );
+}
+
+function BenchmarkPanel() {
+  const [data, setData] = useState<Array<{
+    canonical_gpu: string;
+    provider_count: number;
+    min_price: number;
+    max_price: number;
+    avg_price: number;
+    cheapest_provider: string;
+    cheapest_region: string;
+    entries: Array<{ provider: string; region: string; price_per_hour: number }>;
+  }> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedGpu, setSelectedGpu] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("http://localhost:4000/api/v1/benchmark/gpu")
+      .then((r) => r.json())
+      .then((result) => setData(result.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return <p style={{ color: "var(--muted)" }}>Loading benchmark data...</p>;
+  }
+
+  if (!data || data.length === 0) {
+    return <p style={{ color: "var(--muted)" }}>No benchmark data. Sync some providers first.</p>;
+  }
+
+  return (
+    <div>
+      <p style={{ color: "var(--muted)", marginBottom: 16 }}>
+        Real-time GPU pricing across all connected providers. Click a row to see per-provider breakdown.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>GPU</th>
+            <th>Providers</th>
+            <th>Min</th>
+            <th>Avg</th>
+            <th>Max</th>
+            <th>Cheapest</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((row) => (
+            <tr
+              key={row.canonical_gpu}
+              onClick={() => setSelectedGpu(selectedGpu === row.canonical_gpu ? null : row.canonical_gpu)}
+              style={{ cursor: "pointer" }}
+            >
+              <td style={{ fontWeight: 600, fontFamily: "monospace" }}>{row.canonical_gpu}</td>
+              <td>{row.provider_count}</td>
+              <td style={{ color: "var(--accent-strong)", fontWeight: 600 }}>
+                ${row.min_price.toFixed(2)}/h
+              </td>
+              <td>${row.avg_price.toFixed(2)}/h</td>
+              <td>${row.max_price.toFixed(2)}/h</td>
+              <td>
+                {row.cheapest_provider}
+                <span style={{ color: "var(--muted)", fontSize: 12, marginLeft: 6 }}>
+                  ({row.cheapest_region})
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {selectedGpu ? (
+        <div style={{ marginTop: 24 }}>
+          <h3 style={{ margin: "0 0 12px", fontFamily: "monospace" }}>
+            {selectedGpu} — All providers
+          </h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Provider</th>
+                <th>Region</th>
+                <th>Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data
+                .find((d) => d.canonical_gpu === selectedGpu)
+                ?.entries.map((e, i) => (
+                  <tr key={i}>
+                    <td style={{ fontWeight: 600 }}>{e.provider}</td>
+                    <td>{e.region}</td>
+                    <td style={{ color: i === 0 ? "var(--accent-strong)" : "inherit", fontWeight: i === 0 ? 700 : 400 }}>
+                      ${e.price_per_hour.toFixed(2)}/h
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
     </div>
   );
 }
