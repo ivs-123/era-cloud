@@ -9,7 +9,7 @@ type Tab = "workloads" | "providers" | "instances" | "tenants" | "billing" | "be
 
 export default function HomePage() {
   const auth = useAuth();
-  const [tab, setTab] = useState<Tab>("workloads");
+  const [tab, setTab] = useState<Tab>("instances");
   const [tenants, setTenants] = useState<ApiTenant[]>([]);
   const [providers, setProviders] = useState<ApiProvider[]>([]);
   const [workloads, setWorkloads] = useState<ApiWorkload[]>([]);
@@ -77,9 +77,10 @@ export default function HomePage() {
         <header className="topbar">
           <div>
             <p className="eyebrow">ERA Cloud</p>
-            <h2>{tab === "workloads" ? "Workloads" : tab === "providers" ? "Providers" : tab === "instances" ? "Instances" : tab === "tenants" ? "Tenants" : tab === "billing" ? "Billing" : tab === "benchmark" ? "GPU Benchmark" : tab === "keys" ? "Keys (BYOK)" : "Routing Preferences"}</h2>
+            <h2>{tab === "workloads" ? "Workloads" : tab === "providers" ? "Providers" : tab === "instances" ? "Servers" : tab === "tenants" ? "Tenants" : tab === "billing" ? "Billing" : tab === "benchmark" ? "GPU Benchmark" : tab === "keys" ? "Keys (BYOK)" : "Routing Preferences"}</h2>
           </div>
-          <div className="topbar-actions">
+            <div className="topbar-actions">
+            {tab === "instances" ? <DeployServerButton providers={providers} tenants={tenants} onDeployed={fetchData} /> : null}
             <button type="button" onClick={fetchData} className="btn-ghost">Refresh</button>
             {tab === "workloads" ? <CreateWorkloadForm tenants={tenants} providers={providers} onCreated={fetchData} /> : null}
             {tab === "providers" ? <CreateProviderForm onCreated={fetchData} /> : null}
@@ -134,14 +135,14 @@ function Sidebar({ tab, setTab }: { tab: Tab; setTab: (tab: Tab) => void }) {
         <h1>Control plane</h1>
       </div>
       <nav>
-        <a href="#" onClick={(event_) => { event_.preventDefault(); setTab("workloads"); }} className={tab === "workloads" ? "nav-active" : ""}>
-          Workloads
+        <a href="#" onClick={(event_) => { event_.preventDefault(); setTab("instances"); }} className={tab === "instances" ? "nav-active" : ""}>
+          Servers
         </a>
         <a href="#" onClick={(event_) => { event_.preventDefault(); setTab("providers"); }} className={tab === "providers" ? "nav-active" : ""}>
           Providers
         </a>
-        <a href="#" onClick={(event_) => { event_.preventDefault(); setTab("instances"); }} className={tab === "instances" ? "nav-active" : ""}>
-          Instances
+        <a href="#" onClick={(event_) => { event_.preventDefault(); setTab("workloads"); }} className={tab === "workloads" ? "nav-active" : ""}>
+          Workloads
         </a>
         <a href="#" onClick={(event_) => { event_.preventDefault(); setTab("tenants"); }} className={tab === "tenants" ? "nav-active" : ""}>
           Tenants
@@ -848,6 +849,64 @@ function KeysPanel({ tenants }: { tenants: ApiTenant[] }) {
         </p>
       </div>
     </div>
+  );
+}
+
+function DeployServerButton({ providers, tenants, onDeployed }: { providers: ApiProvider[]; tenants: ApiTenant[]; onDeployed: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [provider, setProvider] = useState("");
+  const [gpu, setGpu] = useState("h100");
+  const [region, setRegion] = useState("us-east");
+  const [template, setTemplate] = useState("base");
+  const [tenantId, setTenantId] = useState(tenants[0]?.id ?? "");
+  const [submitting, setSubmitting] = useState(false);
+
+  const gpuOptions = ["h100", "a100", "l40s", "l40", "a6000", "rtx4090", "v100", "t4"];
+  const gpuProviders = providers.filter(p => p.type === "server");
+
+  const handleDeploy = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await api.providers.createInstance(provider || gpuProviders[0]?.name || "hetzner", {
+        tenant_id: tenantId,
+        gpu_type: gpu,
+        num_gpus: 1,
+        cpu_cores: 8,
+        disk_size_gb: 100,
+        template,
+        region,
+        mode: "prototyping"
+      });
+      setOpen(false);
+      onDeployed();
+    } catch {}
+    setSubmitting(false);
+  };
+
+  if (!open) return <button type="button" onClick={() => setOpen(true)}>Deploy Server</button>;
+
+  return (
+    <form onSubmit={handleDeploy} className="inline-form">
+      <select value={tenantId} onChange={e => setTenantId(e.target.value)}>
+        {tenants.map(t => (<option key={t.id} value={t.id}>{t.name}</option>))}
+      </select>
+      <select value={gpu} onChange={e => setGpu(e.target.value)}>
+        {gpuOptions.map(g => (<option key={g} value={g}>{g.toUpperCase()}</option>))}
+      </select>
+      <select value={provider} onChange={e => setProvider(e.target.value)}>
+        <option value="">Auto (cheapest)</option>
+        {gpuProviders.map(p => (<option key={p.id} value={p.name}>{p.name}</option>))}
+      </select>
+      <input type="text" placeholder="Region" value={region} onChange={e => setRegion(e.target.value)} style={{ width: 100 }} />
+      <select value={template} onChange={e => setTemplate(e.target.value)}>
+        <option value="base">Base</option>
+        <option value="pytorch">PyTorch</option>
+        <option value="cuda">CUDA</option>
+      </select>
+      <button type="submit" disabled={submitting || !tenantId}>{submitting ? "Deploying..." : "Deploy"}</button>
+      <button type="button" className="btn-ghost" onClick={() => setOpen(false)}>Cancel</button>
+    </form>
   );
 }
 

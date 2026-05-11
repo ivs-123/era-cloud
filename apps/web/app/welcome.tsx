@@ -68,32 +68,32 @@ export default function WelcomePage() {
         <div style={{ textAlign: "center", maxWidth: 700, marginBottom: 40 }}>
           <p style={eyebrowStyle}>ONE PLATFORM. 40+ CLOUDS. ZERO COMPLEXITY.</p>
           <h1 style={{ fontSize: 48, margin: "12px 0", color: "white", lineHeight: 1.15 }}>
-            Your cloud,<br />unified
+            GPU servers,<br />any provider, one click
           </h1>
           <p style={{ fontSize: 18, color: "#a9b8ae", lineHeight: 1.6, marginTop: 16 }}>
-            Spin up GPU servers, route inference, manage instances across
-            AWS, GCP, Azure, Yandex, Alibaba, Hetzner, Thunder Compute and 30+ more —
-            from <strong style={{ color: "white" }}>one dashboard, one API, one bill</strong>.
+            A100 · H100 · L40S · RTX 4090 across AWS, GCP, Azure, Yandex,
+            Hetzner, Alibaba, Thunder Compute and 30+ more.
+            <strong style={{ color: "white" }}> One dashboard. One bill. Zero vendor lock-in.</strong>
           </p>
         </div>
 
         <div style={{ ...stepsRowStyle, marginBottom: 40 }}>
-          <Feature icon="🖥" title="GPU Servers" desc="A100 · H100 · L40S · RTX 4090 across 40+ providers" />
-          <Feature icon="🧠" title="Inference API" desc="GPT-4o · Claude · DeepSeek · Llama · Qwen — auto-routed" />
-          <Feature icon="💰" title="One Bill" desc="No vendor lock-in. Pay one invoice. Save up to 70%." />
+          <Feature icon="🖥" title="GPU Servers" desc="H100 from $1.30/h. A100 from $0.55/h. 40+ providers." />
+          <Feature icon="⚡" title="One Click" desc="Pick GPU, pick region. We provision on the cheapest provider." />
+          <Feature icon="💰" title="One Bill" desc="All your cloud servers, one invoice. Save up to 70% vs direct." />
         </div>
 
         <div style={stepsRowStyle}>
-          <Step number="1" title="Sign up" desc="Create account in 10 seconds" />
-          <Step number="2" title="Choose" desc="GPU server or model — we route to best price" />
-          <Step number="3" title="Deploy" desc="Provision in seconds, stop anytime, one bill" />
+          <Step number="1" title="Sign up" desc="Create account, get API key instantly" />
+          <Step number="2" title="Pick GPU" desc="Choose H100, A100, L40S — any region" />
+          <Step number="3" title="Deploy" desc="Server provisions in seconds. Stop anytime." />
         </div>
 
         <div style={{ width: 400, background: "white", borderRadius: 12, padding: 32, marginTop: 40, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
           {mode === "register" ? (
             <form onSubmit={handleRegister} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <h2 style={{ margin: "0 0 4px", fontSize: 22 }}>Get started free</h2>
-              <p style={{ margin: "0 0 8px", color: "var(--muted)", fontSize: 14 }}>No credit card. Instant API key.</p>
+              <h2 style={{ margin: "0 0 4px", fontSize: 22 }}>Deploy your first GPU server</h2>
+              <p style={{ margin: "0 0 8px", color: "var(--muted)", fontSize: 14 }}>Free account. No credit card.</p>
               {error ? <div style={errStyle}>{error}</div> : null}
               <input style={inputStyle} type="text" placeholder="Company name" value={tenantName} onChange={e => setTenantName(e.target.value)} required minLength={2} />
               <input style={inputStyle} type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
@@ -156,23 +156,21 @@ function Feature({ icon, title, desc }: { icon: string; title: string; desc: str
 
 function OnboardingScreen({ apiKey }: { apiKey: string }) {
   const [copied, setCopied] = useState(false);
-  const codeExample = `# GPU Server: spin up H100 on cheapest provider
-curl -X POST https://api.eracloud.pro/v1/chat/completions \\
+  const codeExample = `# 1. Deploy GPU server (H100 on cheapest provider)
+curl -X POST https://api.eracloud.pro/v1/providers/deploy \\
   -H "Authorization: Bearer ${apiKey}" \\
   -H "Content-Type: application/json" \\
-  -d '{"model":"gpu-h100","messages":[{"role":"user","content":"provision"}]}'
+  -d '{
+    "gpu_type": "h100",
+    "num_gpus": 1,
+    "region": "us-east",
+    "template": "base"
+  }'
+# Server provisions in ~30 seconds. You get IP + SSH access.
 
-# Inference API: route any model to cheapest provider
-from openai import OpenAI
-client = OpenAI(
-    api_key="${apiKey}",
-    base_url="https://api.eracloud.pro/v1"
-)
-response = client.chat.completions.create(
-    model="gpt-4o-mini",
-    messages=[{"role": "user", "content": "Hello!"}]
-)
-# Same SDK. 40 providers. Auto-cheapest. Done.`;
+# 2. Or use the dashboard: eracloud.pro → Instances → Deploy
+# 3. Stop when done. Billed only for uptime.
+# That's it. No AWS console. No GCP IAM. No Yandex CLI.`;
 
   const copyCode = () => {
     navigator.clipboard.writeText(codeExample);
@@ -189,13 +187,13 @@ response = client.chat.completions.create(
 
       <main style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40 }}>
         <div style={{ textAlign: "center", maxWidth: 640, marginBottom: 32 }}>
-          <p style={eyebrowStyle}>YOU'RE IN — YOUR CLOUD IS READY</p>
+          <p style={eyebrowStyle}>YOU'RE IN — DEPLOY YOUR FIRST SERVER</p>
           <h1 style={{ fontSize: 40, margin: "12px 0", color: "white" }}>
-            Step 2: Deploy anywhere
+            Step 2: Deploy GPU server
           </h1>
           <p style={{ fontSize: 17, color: "#a9b8ae", lineHeight: 1.6 }}>
-            GPU servers or inference — same API key, same dashboard, 40+ providers.
-            Here's your key and code to start.
+            Your API key is ready. Deploy a GPU server on any provider,
+            or use the dashboard. Same key, same bill.
           </p>
         </div>
 
@@ -226,7 +224,7 @@ response = client.chat.completions.create(
 
         <div style={{ marginTop: 32, textAlign: "center" }}>
           <p style={{ color: "#a9b8ae", fontSize: 14, margin: "0 0 12px" }}>
-            Step 3: Run it. That's it.
+            Step 3: Server is ready. SSH in. Run your workload.
           </p>
           <div style={stepsRowStyle}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#a9b8ae", fontSize: 14 }}>
