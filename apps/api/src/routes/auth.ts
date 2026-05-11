@@ -45,9 +45,15 @@ export async function registerAuthRoutes(app: FastifyInstance, store: EraStore) 
       role
     });
 
+    const { key: apiKey, prefix: apiKeyPrefix } = generateApiKey();
+    const hash = hashApiKey(apiKey);
+    apiKeys.set(hash, { tenantId: tenant.id, userId, prefix: apiKeyPrefix });
+
     return reply.code(201).send({
       data: {
         token,
+        api_key: apiKey,
+        api_key_prefix: apiKeyPrefix,
         tenant_id: tenant.id,
         tenant_name: tenant.name,
         user_id: userId,
