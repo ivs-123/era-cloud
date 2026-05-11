@@ -5,7 +5,7 @@ import { api, type ApiProvider, type ApiTenant, type ApiWorkload } from "./api-c
 import { useAuth } from "./auth.js";
 import WelcomePage from "./welcome.js";
 
-type Tab = "workloads" | "providers" | "tenants" | "billing" | "benchmark" | "keys";
+type Tab = "workloads" | "providers" | "tenants" | "billing" | "benchmark" | "keys" | "prefs";
 
 export default function HomePage() {
   const auth = useAuth();
@@ -77,7 +77,7 @@ export default function HomePage() {
         <header className="topbar">
           <div>
             <p className="eyebrow">ERA Cloud</p>
-            <h2>{tab === "workloads" ? "Workloads" : tab === "providers" ? "Providers" : tab === "tenants" ? "Tenants" : tab === "billing" ? "Billing" : tab === "benchmark" ? "GPU Benchmark" : "Keys (BYOK)"}</h2>
+            <h2>{tab === "workloads" ? "Workloads" : tab === "providers" ? "Providers" : tab === "tenants" ? "Tenants" : tab === "billing" ? "Billing" : tab === "benchmark" ? "GPU Benchmark" : tab === "keys" ? "Keys (BYOK)" : "Routing Preferences"}</h2>
           </div>
           <div className="topbar-actions">
             <button type="button" onClick={fetchData} className="btn-ghost">Refresh</button>
@@ -112,6 +112,8 @@ export default function HomePage() {
           <BenchmarkPanel />
         ) : tab === "keys" ? (
           <KeysPanel tenants={tenants} />
+        ) : tab === "prefs" ? (
+          <PrefsPanel providers={providers} />
         ) : (
           <TenantsTable tenants={tenants} />
         )}
@@ -147,6 +149,9 @@ function Sidebar({ tab, setTab }: { tab: Tab; setTab: (tab: Tab) => void }) {
         </a>
         <a href="#" onClick={(event_) => { event_.preventDefault(); setTab("keys"); }} className={tab === "keys" ? "nav-active" : ""}>
           Keys (BYOK)
+        </a>
+        <a href="#" onClick={(event_) => { event_.preventDefault(); setTab("prefs"); }} className={tab === "prefs" ? "nav-active" : ""}>
+          Preferences
         </a>
       </nav>
       <div style={{ marginTop: "auto" }}>
@@ -836,6 +841,97 @@ function KeysPanel({ tenants }: { tenants: ApiTenant[] }) {
           You pay the provider directly, and ERA Cloud charges a <strong>fixed SaaS subscription</strong> for routing optimization
           ($200-2,000/mo depending on volume). Zero markup on compute costs.
         </p>
+      </div>
+    </div>
+  );
+}
+
+function PrefsPanel({ providers }: { providers: ApiProvider[] }) {
+  const auth = useAuth();
+  const [preferred, setPreferred] = useState<string[]>([]);
+  const [blocked, setBlocked] = useState<string[]>([]);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    const token = auth.token;
+    if (!token) return;
+    fetch("http://localhost:4000/api/v1/tenants/preferences", {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => r.json())
+      .then(d => { setPreferred(d.data.preferred ?? []); setBlocked(d.data.blocked ?? []); })
+      .catch(() => {});
+  }, [auth.token]);
+
+  const toggle = (name: string, list: string[], setter: (v: string[]) => void) => {
+    setter(list.includes(name) ? list.filter(n => n !== name) : [...list, name]);
+  };
+
+  const save = async () => {
+    const token = auth.token;
+    if (!token) return;
+    await fetch("http://localhost:4000/api/v1/tenants/preferences", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ preferred_providers: preferred, blocked_providers: blocked })
+    });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <div>
+      <p style={{ color: "var(--muted)", marginBottom: 24 }}>
+        Preferred providers get priority in auto-routing. Blocked providers are never used.
+        Leave both empty for fully automatic cheapest-routing.
+      </p>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+        <div>
+          <h3 style={{ margin: "0 0 12px" }}>Preferred (priority boost)</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {providers.filter(p => p.status === "healthy").map(p => (
+              <label key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, cursor: "pointer" }}>
+                <input type="checkbox" checked={preferred.includes(p.name)} onChange={() => toggle(p.name, preferred, setPreferred)} />
+                {p.name}
+                <span style={{ color: "var(--muted)", fontSize: 12 }}>({p.capabilityDetails.length} caps)</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 style={{ margin: "0 0 12px" }}>Blocked (never used)</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {providers.map(p => (
+              <label key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, cursor: "pointer" }}>
+                <input type="checkbox" checked={blocked.includes(p.name)} onChange={() => toggle(p.name, blocked, setBlocked)} />
+                {p.name}
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <button type="button" onClick={save} style={{ background: saved ? "#4ade80" : "var(--accent)" }}>
+          {saved ? "Saved!" : "Save Preferences"}
+        </button>
+      </div>
+
+      <div style={{ marginTop: 32, padding: 18, background: "var(--paper)", border: "1px solid var(--line)", borderRadius: 8 }}>
+        <h3 style={{ margin: "0 0 8px" }}>How routing works</h3>
+        <table style={{ background: "transparent", border: 0 }}>
+          <thead>
+            <tr><th style={{ borderBottom: 0 }}>Mode</th><th style={{ borderBottom: 0 }}>Behavior</th></tr>
+          </thead>
+          <tbody>
+            <tr><td style={{ fontWeight: 600 }}>Auto (default)</td><td>Cheapest provider wins. You don't choose.</td></tr>
+            <tr><td style={{ fontWeight: 600 }}>Auto + Preferred</td><td>Cheapest among preferred providers. Others used as fallback.</td></tr>
+            <tr><td style={{ fontWeight: 600 }}>Auto + Blocked</td><td>Cheapest provider, excluding blocked ones.</td></tr>
+            <tr><td style={{ fontWeight: 600 }}>Manual override</td><td>Set <code style={{ background: "var(--panel)", padding: "2px 6px", borderRadius: 4 }}>provider="yandex-cloud"</code> in API call.</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
   );

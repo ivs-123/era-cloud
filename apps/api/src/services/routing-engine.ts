@@ -37,7 +37,8 @@ export class NoCapacityMatchError extends Error {
 
 export function simulateRouting(
   request: RoutingRequest,
-  providers: ProviderRecord[]
+  providers: ProviderRecord[],
+  preferredProviders: string[] = []
 ): RoutingSimulationResponse {
   const canonicalProfile = normalizeProfile(request.profile);
 
@@ -77,17 +78,21 @@ export function simulateRouting(
   const maxCost = Math.max(...candidates.map((candidate) => candidate.estimatedHourlyCostUsd));
   const maxLatency = Math.max(...candidates.map((candidate) => candidate.latencyP50Ms));
   const weights = policyWeights[request.routingPolicy];
+  const hasPreferences = preferredProviders.length > 0;
+  const prefSet = new Set(preferredProviders);
 
   const rankedCandidates: RoutingCandidate[] = candidates
     .map((candidate) => {
       const costScore = 1 - candidate.estimatedHourlyCostUsd / Math.max(maxCost, 0.000001);
       const latencyScore = 1 - candidate.latencyP50Ms / Math.max(maxLatency, 1);
       const availabilityScore = candidate.provider.status === "healthy" ? 1 : 0.55;
+      const preferenceBoost = hasPreferences && prefSet.has(candidate.provider.name) ? 0.3 : 0;
 
       const score =
         weights.cost * costScore +
         weights.latency * latencyScore +
-        weights.availability * availabilityScore;
+        weights.availability * availabilityScore +
+        preferenceBoost;
 
       return {
         provider_id: candidate.provider.id,
