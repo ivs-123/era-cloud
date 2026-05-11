@@ -5,6 +5,7 @@ import type {
   WorkloadKind
 } from "@era/common";
 import type { ProviderRecord } from "../storage/store.js";
+import { normalizeProfile } from "./gpu-normalizer.js";
 
 interface RoutingRequest {
   kind: WorkloadKind;
@@ -38,12 +39,16 @@ export function simulateRouting(
   request: RoutingRequest,
   providers: ProviderRecord[]
 ): RoutingSimulationResponse {
+  const canonicalProfile = normalizeProfile(request.profile);
+
   const candidates = providers
-    .filter((provider) => provider.type === request.kind)
     .filter((provider) => provider.status !== "down")
     .flatMap((provider) =>
       provider.capabilityDetails
-        .filter((capability) => capability.profile === request.profile)
+        .filter((capability) => {
+          const capCanonical = normalizeProfile(capability.profile);
+          return capCanonical === canonicalProfile;
+        })
         .filter((capability) => capability.region === request.region)
         .filter((capability) => capability.isAvailable)
         .filter((capability) =>
