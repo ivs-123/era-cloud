@@ -1,46 +1,149 @@
 # Work History
 
-## 2026-05-10 - Provider Integration, Dashboard, Billing
+## 2026-05-12 — Cloud-First Positioning
 
 Focus:
 
-- Full-stack sprint: provider adapter framework, Thunder Compute integration, interactive dashboard, billing engine.
+- Reposition ERA Cloud as a cloud platform (GPU servers primary), not just an inference gateway.
+- Make the product actually runnable end-to-end.
 
 Completed:
 
-- Git repository initialized and first commit made.
-- Provider adapter framework (`apps/api/src/providers/adapter.ts`) with `ProviderAdapter` interface.
-- Thunder Compute adapter with real API client (`apps/api/src/providers/thunder-compute.ts`) calling `https://api.thundercompute.com:8443/v1`.
-- Provider registry and bridge routes (`/api/v1/providers/:name/sync`, `/instances`, `/instances/:id/stop`).
-- Added `updateProviderCapabilities` to `EraStore` interface and both MemoryStore / PostgresStore.
-- Interactive Next.js dashboard with tabs: Workloads, Providers, Tenants, Billing.
-- API client layer (`apps/web/app/api-client.ts`) for typed frontend→backend communication.
-- Billing engine with usage events, projected spend estimates, and invoice generation.
-- Billing API endpoints: `POST /api/v1/usage/events`, `GET /api/v1/usage`, `GET /api/v1/billing/estimate`, `GET /api/v1/billing/invoices`, `POST /api/v1/billing/invoices/generate`.
-- Planned provider adapter stubs for GCP, AWS, Alibaba, Oracle, Cloud.ru, Selectel, Yandex Cloud.
-- Added `SUPPORTED_PROVIDERS` list to `@era/common` shared package.
-- Added `.env.example` entries for Thunder API credentials.
+- Landing page rewritten: "GPU servers, any provider, one click" — H100 from $1.30/h, A100 from $0.55/h.
+- Dashboard: default tab = Servers (was Workloads), "Deploy Server" button with GPU picker.
+- Onboarding: post-signup shows server deployment code, not just inference.
+- Centralized API_BASE config — zero hardcoded `localhost:4000` in frontend.
+- `.env.local` for dev environment.
+- Full e2e tested: register → API key → sync providers → deploy workload → check instances.
 
 Verification:
 
 - `npm.cmd run typecheck` passed.
 - `npm.cmd test` passed with 5 tests.
-- `npm.cmd run build` passed (API + Next.js production build).
-- Frontend compiles and builds via Turbopack.
+- `npm.cmd run build` passed (API + Next.js production).
+- API on `:4000`, Web on `:3000`, register → deploy flow works.
 
 Blockers:
 
-- PostgreSQL not running (DLL init error on Windows). PostgresStore compiles but remains unvalidated against live DB.
-- Thunder adapter not tested against live API (needs `THUNDER_API_TOKEN`).
-- Planned provider adapters are stubs — need per-provider API clients and credentials.
+- No real API tokens for any provider except Thunder Compute.
+- PostgreSQL not validated (DLL error on Windows).
 
 Next action:
 
-- Test Thunder Compute adapter end-to-end with real API token.
-- Implement real API clients for GCP, AWS, Yandex Cloud, etc.
-- PostgreSQL validation (Docker or cloud PG).
+- Register live accounts on DeepInfra, Groq, Together AI, Vast.ai, RunPod.
+- Test real inference routing and GPU server provisioning.
 
-## 2026-05-10 - WLD Folder Capsule
+## 2026-05-12 — Provider Preferences & Routing Control
+
+Focus:
+
+- Add manual provider selection alongside auto-routing.
+
+Completed:
+
+- `/v1/chat/completions` accepts `provider` param for manual override.
+- `preferred_providers` / `blocked_providers` arrays for auto-routing preferences.
+- Routing engine: preferred providers get +0.3 score boost; blocked are filtered out.
+- Tenant preferences API: `PUT/GET /api/v1/tenants/preferences`.
+- Preferences UI: checkbox lists for preferred/blocked providers.
+- 4 routing modes: Auto (cheapest), Auto + Preferred, Manual override, Blocked.
+
+Verification:
+
+- `npm.cmd run typecheck` passed.
+- `npm.cmd test` passed with 5 tests.
+
+## 2026-05-12 — 1-2-3 Onboarding Flow
+
+Focus:
+
+- Make onboarding dead simple: sign up → copy code → deployed.
+
+Completed:
+
+- Landing page with 1-2-3 steps and feature cards.
+- API key auto-generated on registration (returned in response).
+- Post-signup onboarding screen with copy-paste code example.
+- JWT auth context (`AuthProvider`) wraps entire app.
+- Login/register screen → automatic redirect to dashboard.
+
+Verification:
+
+- Typecheck, tests, production build passed.
+
+## 2026-05-11 — Auth, Rate Limiting, LangChain Endpoint
+
+Focus:
+
+- Add authentication, security, and OpenAI-compatible API endpoint.
+
+Completed:
+
+- JWT auth: register/login/me/api-keys endpoints.
+- `POST /v1/chat/completions` — OpenAI-compatible, drop-in replacement.
+- `GET /v1/models` — list all available models with provider info.
+- Rate limiting: 600 req/min per tenant, `Retry-After` header.
+- Auth middleware: all routes protected except health/auth/benchmark.
+- `SKIP_AUTH=true` for dev/test mode.
+- Vitest config with auto SKIP_AUTH.
+
+Verification:
+
+- `npm.cmd run typecheck` passed.
+- `npm.cmd test` passed with 5 tests.
+
+## 2026-05-11 — BYOK (Bring Your Own Key)
+
+Focus:
+
+- Enterprise feature: clients use their own provider API keys through ERA Cloud.
+
+Completed:
+
+- TenantKey model: store, add, list, remove keys.
+- BYOK API: `POST/GET/DELETE /api/v1/keys`.
+- Workload creation: `tenant_key_id` param — routes to `byok_<key_id>`.
+- BYOK routing reason: `byok_direct_route`.
+- Keys management UI with add/remove, key prefix display (never full key).
+- BYOK toggle in Create Workload form.
+
+Verification:
+
+- Full e2e: register → add AWS key → create BYOK workload → confirmed `byok_direct_route`.
+
+## 2026-05-10 — Provider Integration, Dashboard, Billing, 40 Adapters
+
+Focus:
+
+- Full-stack sprint: 40 provider adapters, Thunder Compute integration, interactive dashboard, billing engine, GPU benchmark, deployment config.
+
+Completed:
+
+- Git repository initialized (19 commits total as of 2026-05-12).
+- Provider adapter framework with `ProviderAdapter` interface.
+- Thunder Compute adapter with real HTTP client to `api.thundercompute.com:8443/v1`.
+- 40 adapters: 24 GPU cloud, 11 inference APIs, 3 edge/CDN, 2 marketplaces.
+- GPU profile normalization: cross-provider H100/A100 matching.
+- Interactive Next.js dashboard with 8 tabs.
+- Billing engine: usage events, projected spend, invoice generation.
+- GPU benchmark API: 14 canonical profiles, 19-provider price comparison.
+- Dockerfile + docker-compose + deployment guide for `eracloud.pro`.
+- Provider registration checklist (21 providers in 6 tiers).
+- Partnership strategy and business canvas docs.
+
+Verification:
+
+- `npm.cmd run typecheck` passed.
+- `npm.cmd test` passed with 5 tests.
+- `npm.cmd run build` passed (API + Next.js production).
+
+Blockers:
+
+- PostgreSQL not validated (DLL init error on Windows). PostgresStore compiles but untested.
+- No real provider API tokens except Thunder Compute.
+- Planned adapters are stubs — need real API credentials.
+
+## 2026-05-10 — WLD Folder Capsule
 
 Focus:
 
@@ -48,48 +151,16 @@ Focus:
 
 Completed:
 
-- Created `WLD/` folder.
-- Added index, current focus, architecture snapshot, work history, action registry, recovery checklist, and update protocol.
+- Created `WLD/` folder with 7 files.
 - Preserved prior work history from `worklogdoc.md`.
-- Kept root `worklogdoc.md` as a pointer to the new WLD capsule.
 
-Verification:
-
-- WLD files created and linked from README/worklogdoc.
-
-Blockers:
-
-- None.
-
-Next action:
-
-- Continue PostgreSQL persistence validation.
-
-## 2026-05-08 - WLD Created
+## 2026-05-08 — WLD Created
 
 Focus:
 
-- Create persistent project work journal so work can resume cleanly after context resets or limit refreshes.
+- Create persistent project work journal.
 
-Completed:
-
-- Added `worklogdoc.md` at the project root.
-- Captured current product focus, next action, project state, important commands, and known caveats.
-- Established the rule that WLD should be updated after every meaningful work block.
-
-Verification:
-
-- File created in project root.
-
-Blockers:
-
-- None.
-
-Next action:
-
-- Continue infrastructure validation: enable Docker/PostgreSQL path or add a fallback local Postgres setup if Docker is unavailable.
-
-## 2026-05-03 - Domain and Local PostgreSQL Infrastructure
+## 2026-05-03 — Domain and Local PostgreSQL Infrastructure
 
 Focus:
 
@@ -97,58 +168,19 @@ Focus:
 
 Completed:
 
-- Added `docker-compose.yml` for local PostgreSQL.
-- Added root scripts: `db:up`, `db:down`, `db:logs`, `db:migrate`.
-- Added billing migration `infra/postgres/migrations/002_billing.sql`.
-- Added Cloudflare/domain deployment doc `docs/08-domain-cloudflare-deployment.md`.
-- Updated README, roadmap, and PostgreSQL documentation.
+- `docker-compose.yml`, billing migration, Cloudflare/domain docs.
 
-Verification:
-
-- `npm.cmd run typecheck` passed.
-- `npm.cmd test` passed with 5 tests.
-- `npm.cmd run build` passed.
-
-Blockers:
-
-- Docker CLI was unavailable, so real container startup and DB migration could not be executed.
-
-Next action:
-
-- Install/enable Docker and run the real Postgres migration flow.
-
-## 2026-05-03 - PostgreSQL Repository Layer
+## 2026-05-03 — PostgreSQL Repository Layer
 
 Focus:
 
-- Decouple routes from in-memory storage and prepare API for persistent storage.
+- Decouple routes from in-memory storage.
 
 Completed:
 
-- Added `EraStore` interface in `apps/api/src/storage/store.ts`.
-- Converted routes to async store calls.
-- Added `PostgresStore` implementation.
-- Added store factory based on `STORAGE_DRIVER`.
-- Added migration runner `apps/api/src/scripts/migrate.ts`.
-- Updated `.env.example`.
-- Added docs `docs/07-local-storage-and-postgres.md`.
+- `EraStore` interface, `PostgresStore`, migration runner, store factory.
 
-Verification:
-
-- `npm.cmd run typecheck` passed.
-- `npm.cmd test` passed with 5 tests.
-- `npm.cmd run build` passed.
-- Local API and web responded successfully in memory mode.
-
-Blockers:
-
-- No live PostgreSQL verification yet.
-
-Next action:
-
-- Run Postgres-backed end-to-end API scenario.
-
-## 2026-05-02 - Routing and Workload Lifecycle
+## 2026-05-02 — Routing and Workload Lifecycle
 
 Focus:
 
@@ -156,83 +188,24 @@ Focus:
 
 Completed:
 
-- Added routing engine with policies: `cheapest`, `balanced`, `low-latency`.
-- Added `POST /api/v1/routing/simulate`.
-- Added workload endpoints: create, list, get, stop.
-- Added provider `capability_details`.
-- Added routing/workload tests.
-- Updated API docs and roadmap.
+- Routing engine (cheapest/balanced/low-latency), workload CRUD, provider capabilities.
 
-Verification:
-
-- `npm.cmd run typecheck` passed.
-- `npm.cmd test` passed with 5 tests.
-- `npm.cmd run build` passed.
-- Live HTTP scenario worked in memory mode.
-
-Blockers:
-
-- Data was still in memory at this point.
-
-Next action:
-
-- Add PostgreSQL persistence.
-
-## 2026-04-23 - Monorepo and First API/Web Skeleton
+## 2026-04-23 — Monorepo and First API/Web Skeleton
 
 Focus:
 
-- Turn product docs into a runnable project skeleton.
+- Turn product docs into a runnable project.
 
 Completed:
 
-- Added npm workspace monorepo.
-- Added `apps/api`, `apps/web`, and `packages/common`.
-- Added Fastify API with health, tenants, providers.
-- Added Next.js dashboard shell.
-- Added first PostgreSQL migration `001_initial.sql`.
-- Added `.env.example`, `.gitignore`, package scripts, TypeScript config.
+- npm workspace monorepo, Fastify API, Next.js dashboard, first migration.
 
-Verification:
-
-- `npm.cmd run typecheck` passed.
-- `npm.cmd test` passed.
-- `npm.cmd run build` passed.
-- API health returned `ok`; web returned `200 OK`.
-
-Blockers:
-
-- No Git repository initialized at that time.
-
-Next action:
-
-- Add routing/workload functionality.
-
-## 2026-03-29 - Product and Architecture Specification
+## 2026-03-29 — Product and Architecture Specification
 
 Focus:
 
-- Define ERA Cloud MVP as a broker/control-plane instead of owning infrastructure from day one.
+- Define ERA Cloud MVP as a broker/control-plane.
 
 Completed:
 
-- Added README and core docs:
-- `docs/01-product-mvp.md`
-- `docs/02-system-architecture.md`
-- `docs/03-api-contracts-v1.md`
-- `docs/04-data-model-postgres.md`
-- `docs/05-routing-policies.md`
-- `docs/06-roadmap-12-weeks.md`
-
-Verification:
-
-- Documentation files created and reviewed structurally.
-
-Blockers:
-
-- No implementation existed yet.
-
-Next action:
-
-- Bootstrap monorepo.
-
+- README + 8 core docs (MVP, architecture, API, data model, routing, roadmap, storage, deployment).

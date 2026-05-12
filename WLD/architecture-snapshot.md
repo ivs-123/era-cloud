@@ -4,100 +4,108 @@
 
 ```text
 apps/
-  api/      Fastify backend API
-  web/      Next.js dashboard shell
+  api/           Fastify backend API (19 endpoints)
+    src/
+      config.ts
+      app.ts        bootstrap + route registration
+      server.ts     entry point
+      providers/    adapter interface, Thunder Compute, all 40 adapters
+      routes/       health, auth, tenants, providers, routing, workloads,
+                    provider-bridge, billing, benchmark, byok, inference
+      services/     routing-engine, billing-engine, benchmark, auth,
+                    gpu-normalizer
+      storage/      EraStore interface, MemoryStore, PostgresStore
+      middleware/    auth (JWT), rate-limiter
+      scripts/      migrate.ts
+    test/
+    vitest.config.ts
+  web/           Next.js dashboard (8 tabs)
+    app/
+      layout.tsx   AuthProvider wrapper
+      page.tsx     Dashboard (tabs: Servers, Providers, Workloads, Tenants,
+                   Billing, Benchmark, Keys, Preferences)
+      welcome.tsx  Landing page + onboarding
+      auth.tsx     JWT context provider
+      api-client.ts  Typed API client with API_BASE config
+      styles.css
 packages/
-  common/   shared TypeScript types
+  common/        shared TypeScript types (SUPPORTED_PROVIDERS, contracts)
 infra/
   postgres/
-    migrations/
-docs/       product, architecture, API, deployment docs
-WLD/        recovery capsule
+    migrations/  001_initial.sql, 002_billing.sql
+docs/           12 documents (MVP, architecture, API, data model, routing,
+                roadmap, storage, deployment, partnership, business canvas,
+                deployment guide, provider checklist)
+WLD/            recovery capsule (7 files)
 ```
 
 ## Runtime Components
 
-- API: Fastify, TypeScript, Node.js
-- Web: Next.js
-- Shared contracts: `@era/common`
-- Persistence modes: `memory` and `postgres`
-- Database: PostgreSQL
-- Local DB option: Docker Compose
+- API: Fastify, TypeScript, Node.js 22+
+- Web: Next.js 16 (Turbopack)
+- Shared types: `@era/common`
+- Persistence: memory (dev) + postgres (compiles, untested)
+- Auth: JWT (jsonwebtoken), rate limiting (in-memory)
+- Database: PostgreSQL (migrations ready, not validated)
+- Local DB: Docker Compose (Docker unavailable on Windows)
 
-## API Surface Implemented
+## API Surface (19 endpoints)
 
 - `GET /health`
+- `POST /api/v1/auth/register` — returns JWT + API key
+- `POST /api/v1/auth/login` — returns JWT
+- `GET /api/v1/auth/me` — current user
+- `POST /api/v1/auth/api-keys` — generate dev API key
+- `GET /api/v1/auth/api-keys` — list keys
 - `GET /api/v1/tenants`
 - `POST /api/v1/tenants`
+- `PUT /api/v1/tenants/preferences` — provider prefs
+- `GET /api/v1/tenants/preferences`
 - `GET /api/v1/providers`
 - `POST /api/v1/admin/providers`
+- `POST /api/v1/providers/:name/sync`
+- `GET /api/v1/providers/:name/instances`
+- `POST /api/v1/providers/:name/instances`
+- `POST /api/v1/providers/:name/instances/:id/stop`
 - `POST /api/v1/routing/simulate`
 - `GET /api/v1/workloads`
 - `GET /api/v1/workloads/:id`
 - `POST /api/v1/workloads`
 - `POST /api/v1/workloads/:id/stop`
-- `POST /api/v1/providers/:name/sync`
-- `GET /api/v1/providers/:name/instances`
-- `POST /api/v1/providers/:name/instances`
-- `POST /api/v1/providers/:name/instances/:instanceId/stop`
 - `POST /api/v1/usage/events`
 - `GET /api/v1/usage`
 - `GET /api/v1/billing/estimate`
 - `GET /api/v1/billing/invoices`
 - `POST /api/v1/billing/invoices/generate`
+- `GET /api/v1/benchmark/gpu`
+- `POST /api/v1/keys` — BYOK
+- `GET /api/v1/keys`
+- `DELETE /api/v1/keys/:id`
+- `POST /v1/chat/completions` — OpenAI-compatible
+- `GET /v1/models`
 
-## Important Backend Files
+## Providers (40 total, 4 layers)
 
-- `apps/api/src/app.ts`: app bootstrap and route registration
-- `apps/api/src/config.ts`: runtime config
-- `apps/api/src/storage/store.ts`: storage interface
-- `apps/api/src/storage/memory-store.ts`: default in-memory store
-- `apps/api/src/storage/postgres-store.ts`: PostgreSQL store
-- `apps/api/src/storage/index.ts`: store factory
-- `apps/api/src/providers/adapter.ts`: provider adapter interface
-- `apps/api/src/providers/thunder-compute.ts`: Thunder Compute HTTP client
-- `apps/api/src/providers/registry.ts`: provider adapter registry
-- `apps/api/src/providers/planned-adapters.ts`: stubs for GCP, AWS, Yandex, etc.
-- `apps/api/src/services/routing-engine.ts`: routing algorithm
-- `apps/api/src/services/billing-engine.ts`: billing/invoice logic
-- `apps/api/src/routes/*.ts`: HTTP routes
-- `apps/api/src/scripts/migrate.ts`: SQL migration runner
-
-## Important Frontend Files
-
-- `apps/web/app/page.tsx`: dashboard shell
-- `apps/web/app/styles.css`: dashboard styling
-- `apps/web/app/layout.tsx`: app metadata/layout
-
-## Database Migrations
-
-- `infra/postgres/migrations/001_initial.sql`
-- `infra/postgres/migrations/002_billing.sql`
+| Layer | Providers | Count |
+|-------|-----------|-------|
+| GPU Cloud | Thunder, Hetzner, RunPod, Lambda, Vultr, DO, Linode, Vast.ai, FluidStack, MassedCompute, OVHcloud, AWS, GCP, Azure, Oracle, IBM, Alibaba, Tencent, Huawei, Baidu, Yandex, VK Cloud, SberCloud, Cloud.ru, Selectel | 24 |
+| Inference API | DeepInfra, Together, Groq, Lepton, Cerebras, SambaNova, OpenAI, Anthropic, Fireworks, DeepL, AssemblyAI | 11 |
+| Edge/CDN | Cloudflare, Akamai, Fastly | 3 |
+| Marketplace | GitHub, Vercel | 2 |
 
 ## Domain Architecture
 
-Registered domain:
+- `eracloud.pro` — registered, Cloudflare DNS
+- Planned: `app.eracloud.pro`, `api.eracloud.pro`, `docs.eracloud.pro`
+- Brand decision pending: `eracloud.pro` vs `eraone` ecosystem
 
-- `eracloud.pro`
+## Key Architectural Patterns
 
-DNS provider:
-
-- Cloudflare
-
-Planned hostnames:
-
-- `eracloud.pro`: public website
-- `www.eracloud.pro`: website alias
-- `app.eracloud.pro`: customer control panel
-- `api.eracloud.pro`: backend API
-- `docs.eracloud.pro`: docs later
-- `status.eracloud.pro`: status page later
-
-## Routing Policies
-
-- `cheapest`: cost-first routing
-- `balanced`: default blend of cost, latency, availability
-- `low-latency`: latency-first routing
+- **Provider Adapter:** unified interface → 40 implementations
+- **GPU Normalization:** canonical profile names (h100-80gb, a100-80gb) → cross-provider matching
+- **Routing Engine:** cheapest/balanced/low-latency + preferred/blocked providers
+- **BYOK:** client brings own keys → direct routing, fixed SaaS fee
+- **Auth:** JWT (24h) + API keys (era_... prefix) + rate limiting (600/min)
 
 ## Verification Commands
 
@@ -105,5 +113,5 @@ Planned hostnames:
 npm.cmd run typecheck
 npm.cmd test
 npm.cmd run build
+$env:SKIP_AUTH="true"; npm.cmd test  # for auth-gated tests
 ```
-

@@ -1,6 +1,6 @@
 # Recovery Checklist
 
-Use this checklist when resuming the project after a pause or context loss.
+Use this when resuming the project after a pause or context loss.
 
 ## 1. Read State
 
@@ -15,22 +15,16 @@ Open in order:
 ## 2. Inspect Workspace
 
 ```powershell
-Get-ChildItem -Force
+git log --oneline
 git status --short
 ```
-
-If this is not a Git repository, do not assume history exists.
 
 ## 3. Verify Tooling
 
 ```powershell
-node --version
+node --version   # >=22
 npm.cmd --version
-docker --version
-docker compose version
 ```
-
-If Docker is unavailable, continue in memory mode or install/enable Docker before PostgreSQL validation.
 
 ## 4. Verify Project
 
@@ -40,46 +34,59 @@ npm.cmd test
 npm.cmd run build
 ```
 
-## 5. Run Local Memory Mode
+## 5. Run Dev Environment
 
 ```powershell
+# Terminal 1: API
 $env:STORAGE_DRIVER="memory"
 npm.cmd run dev:api
+
+# Terminal 2: Web
+$env:NEXT_PUBLIC_API_URL="http://localhost:4000"
 npm.cmd run dev:web
 ```
 
 Expected:
-
 - API health: `http://localhost:4000/health`
 - Web: `http://localhost:3000`
 
-## 6. Run PostgreSQL Mode
+## 6. Test Full Flow
 
 ```powershell
-npm.cmd run db:up
-$env:STORAGE_DRIVER="postgres"
-$env:DATABASE_URL="postgres://era:era@localhost:5432/era_cloud"
-npm.cmd run db:migrate
-npm.cmd run dev:api
+# Register
+curl -X POST http://localhost:4000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"tenant_name":"Test","email":"test@test.com","password":"pass123456"}'
+
+# Copy token from response, then sync providers
+$token = "<JWT from above>"
+curl -X POST http://localhost:4000/api/v1/providers/hetzner/sync \
+  -H "Content-Type: application/json" -H "Authorization: Bearer $token" -d '{}'
+
+# Create workload
+curl -X POST http://localhost:4000/api/v1/workloads \
+  -H "Content-Type: application/json" -H "Authorization: Bearer $token" \
+  -d '{"tenant_id":"<id>","kind":"server","profile":"gpu-h100","region":"us-east","routing_policy":"cheapest"}'
+
+# Check benchmark
+curl http://localhost:4000/api/v1/benchmark/gpu
 ```
 
-Expected validation:
+## 7. Key Files Reference
 
-1. Create tenant.
-2. Register provider.
-3. Simulate routing.
-4. Create workload.
-5. Stop workload.
-6. Restart API.
-7. Confirm persisted data remains.
+- Auth: `apps/api/src/services/auth.ts`, `apps/api/src/routes/auth.ts`, `apps/api/src/middleware/auth.ts`
+- Providers: `apps/api/src/providers/adapter.ts`, `apps/api/src/providers/all-adapters.ts`, `apps/api/src/providers/inference-adapters.ts`
+- Routing: `apps/api/src/services/routing-engine.ts`, `apps/api/src/services/gpu-normalizer.ts`
+- Billing: `apps/api/src/services/billing-engine.ts`, `apps/api/src/routes/billing.ts`
+- Frontend: `apps/web/app/page.tsx`, `apps/web/app/welcome.tsx`, `apps/web/app/auth.tsx`, `apps/web/app/api-client.ts`
+- Deployment: `Dockerfile`, `docker-compose.yml`, `docs/11-deployment.md`
+- Docs: `docs/10-business-canvas.md`, `docs/09-partnership-strategy.md`
 
-## 7. Update WLD
+## 8. Update WLD
 
 After work is complete:
 
-1. Append `WLD/history.md`.
-2. Append `WLD/action-registry.md`.
-3. Update `WLD/current-focus.md`.
-4. Update `WLD/architecture-snapshot.md` if architecture changed.
-5. Update `worklogdoc.md` only if the entry point changes.
-
+1. Append `WLD/history.md`
+2. Append `WLD/action-registry.md`
+3. Update `WLD/current-focus.md`
+4. Update `WLD/architecture-snapshot.md` if architecture changed
