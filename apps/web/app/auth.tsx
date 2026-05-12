@@ -27,7 +27,7 @@ const AuthContext = createContext<AuthContextValue>({
   isAuthenticated: false
 });
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+import { API_BASE } from "./api-client.js";
 
 function loadState(): AuthState {
   if (typeof window === "undefined") return { token: null, tenantId: null, userId: null, role: null };

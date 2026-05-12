@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "./auth.js";
+import { API_BASE } from "./api-client.js";
 
 export default function WelcomePage() {
   const auth = useAuth();
@@ -20,7 +21,7 @@ export default function WelcomePage() {
     setError("");
     setLoading(true);
     try {
-      const r = await fetch("http://localhost:4000/api/v1/auth/register", {
+      const r = await fetch(`${API_BASE}/api/v1/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tenant_name: tenantName, email, password })

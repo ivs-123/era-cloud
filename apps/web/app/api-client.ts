@@ -1,4 +1,24 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+
+export function apiFetch(path: string, options?: RequestInit & { params?: Record<string, string> }): Promise<Response> {
+  const url = new URL(`${API_BASE}${path}`);
+
+  if (options?.params) {
+    for (const [key, value] of Object.entries(options.params)) {
+      url.searchParams.set(key, value);
+    }
+  }
+
+  const { params, ...fetchOptions } = options ?? {};
+
+  return fetch(url.toString(), {
+    ...fetchOptions,
+    headers: {
+      "Content-Type": "application/json",
+      ...fetchOptions.headers
+    }
+  });
+}
 
 interface FetchOptions extends RequestInit {
   params?: Record<string, string>;

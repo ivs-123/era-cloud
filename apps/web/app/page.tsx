@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, type ApiProvider, type ApiTenant, type ApiWorkload } from "./api-client.js";
+import { api, API_BASE, type ApiProvider, type ApiTenant, type ApiWorkload } from "./api-client.js";
 import { useAuth } from "./auth.js";
 import WelcomePage from "./welcome.js";
 
@@ -452,7 +452,7 @@ function CreateWorkloadForm({ tenants, providers, onCreated }: { tenants: ApiTen
 
   const loadKeys = async (tid: string) => {
     try {
-      const r = await fetch(`http://localhost:4000/api/v1/keys?tenant_id=${encodeURIComponent(tid)}`);
+      const r = await fetch(`${API_BASE}/api/v1/keys?tenant_id=${encodeURIComponent(tid)}`);
       const d = await r.json();
       setKeys(d.data ?? []);
     } catch { setKeys([]); }
@@ -548,7 +548,7 @@ function BillingPanel({ tenants, workloads, providers }: { tenants: ApiTenant[];
     if (!selectedTenant) return;
     setLoadingEstimate(true);
     try {
-      const response = await fetch(`http://localhost:4000/api/v1/billing/estimate?tenant_id=${encodeURIComponent(selectedTenant)}`);
+      const response = await fetch(`${API_BASE}/api/v1/billing/estimate?tenant_id=${encodeURIComponent(selectedTenant)}`);
       const result = await response.json();
       setEstimate(result.data);
     } catch {
@@ -560,12 +560,12 @@ function BillingPanel({ tenants, workloads, providers }: { tenants: ApiTenant[];
   const generateInvoice = async () => {
     if (!selectedTenant) return;
     try {
-      await fetch("http://localhost:4000/api/v1/billing/invoices/generate", {
+      await fetch(`${API_BASE}/api/v1/billing/invoices/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tenant_id: selectedTenant })
       });
-      const response = await fetch(`http://localhost:4000/api/v1/billing/invoices?tenant_id=${encodeURIComponent(selectedTenant)}`);
+      const response = await fetch(`${API_BASE}/api/v1/billing/invoices?tenant_id=${encodeURIComponent(selectedTenant)}`);
       const result = await response.json();
       setInvoices(result.data ?? []);
     } catch {
@@ -656,7 +656,7 @@ function BenchmarkPanel() {
   const [selectedGpu, setSelectedGpu] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("http://localhost:4000/api/v1/benchmark/gpu")
+    fetch(`${API_BASE}/api/v1/benchmark/gpu`)
       .then((r) => r.json())
       .then((result) => setData(result.data))
       .catch(() => {})
@@ -759,7 +759,7 @@ function KeysPanel({ tenants }: { tenants: ApiTenant[] }) {
     if (!selectedTenant) return;
     setLoading(true);
     try {
-      const r = await fetch(`http://localhost:4000/api/v1/keys?tenant_id=${encodeURIComponent(selectedTenant)}`);
+      const r = await fetch(`${API_BASE}/api/v1/keys?tenant_id=${encodeURIComponent(selectedTenant)}`);
       const data = await r.json();
       setKeys(data.data ?? []);
     } catch { setKeys([]); }
@@ -772,7 +772,7 @@ function KeysPanel({ tenants }: { tenants: ApiTenant[] }) {
     event_.preventDefault();
     setSubmitting(true);
     try {
-      await fetch("http://localhost:4000/api/v1/keys", {
+      await fetch(`${API_BASE}/api/v1/keys`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -790,7 +790,7 @@ function KeysPanel({ tenants }: { tenants: ApiTenant[] }) {
   };
 
   const removeKey = async (id: string) => {
-    await fetch(`http://localhost:4000/api/v1/keys/${id}`, { method: "DELETE" });
+    await fetch(`${API_BASE}/api/v1/keys/${id}`, { method: "DELETE" });
     loadKeys();
   };
 
@@ -922,7 +922,7 @@ function InstancesPanel({ providers }: { providers: ApiProvider[] }) {
   const loadInstances = async (providerName: string) => {
     setLoading(true);
     try {
-      const r = await fetch(`http://localhost:4000/api/v1/providers/${providerName}/instances`);
+      const r = await fetch(`${API_BASE}/api/v1/providers/${providerName}/instances`);
       const d = await r.json();
       setInstances((d.data ?? []).map((i: Record<string, unknown>) => ({ ...i, providerName })));
     } catch { setInstances([]); }
@@ -1004,7 +1004,7 @@ function PrefsPanel({ providers }: { providers: ApiProvider[] }) {
   useEffect(() => {
     const token = auth.token;
     if (!token) return;
-    fetch("http://localhost:4000/api/v1/tenants/preferences", {
+    fetch(`${API_BASE}/api/v1/tenants/preferences`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())
@@ -1019,7 +1019,7 @@ function PrefsPanel({ providers }: { providers: ApiProvider[] }) {
   const save = async () => {
     const token = auth.token;
     if (!token) return;
-    await fetch("http://localhost:4000/api/v1/tenants/preferences", {
+    await fetch(`${API_BASE}/api/v1/tenants/preferences`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ preferred_providers: preferred, blocked_providers: blocked })
