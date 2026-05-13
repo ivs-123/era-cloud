@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
 import type { ProviderCapability, WorkloadState } from "@era/common";
-import type { EraStore, InvoiceRecord, ProviderRecord, RoutingDecisionRecord, TenantKeyRecord, TenantRecord, UsageEventRecord, WorkloadRecord } from "./store.js";
+import type { EraStore, InvoiceRecord, ProviderRecord, RoutingDecisionRecord, TenantKeyRecord, TenantRecord, UsageEventRecord, WorkloadRecord, UserRecord, ApiKeyRecord } from "./store.js";
 
 export class MemoryStore implements EraStore {
   private tenants = new Map<string, TenantRecord>();
@@ -10,6 +10,8 @@ export class MemoryStore implements EraStore {
   private usageEvents = new Map<string, UsageEventRecord>();
   private invoices = new Map<string, InvoiceRecord>();
   private tenantKeys = new Map<string, TenantKeyRecord>();
+  private users = new Map<string, UserRecord>();
+  private apiKeys = new Map<string, ApiKeyRecord>();
 
   async createTenant(input: { name: string }): Promise<TenantRecord> {
     const tenant: TenantRecord = {
@@ -193,5 +195,33 @@ export class MemoryStore implements EraStore {
     }
 
     this.tenantKeys.delete(id);
+  }
+
+  async createUser(input: Omit<UserRecord, "id" | "createdAt">): Promise<UserRecord> {
+    const user: UserRecord = {
+      ...input,
+      id: `usr_${nanoid(12)}`,
+      createdAt: new Date().toISOString()
+    };
+    this.users.set(user.id, user);
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<UserRecord | undefined> {
+    return [...this.users.values()].find((u) => u.email === email);
+  }
+
+  async addApiKey(input: Omit<ApiKeyRecord, "id" | "createdAt">): Promise<ApiKeyRecord> {
+    const key: ApiKeyRecord = {
+      ...input,
+      id: `ak_${nanoid(10)}`,
+      createdAt: new Date().toISOString()
+    };
+    this.apiKeys.set(key.id, key);
+    return key;
+  }
+
+  async listApiKeys(tenantId: string): Promise<ApiKeyRecord[]> {
+    return [...this.apiKeys.values()].filter((k) => k.tenantId === tenantId);
   }
 }

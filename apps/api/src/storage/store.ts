@@ -98,6 +98,24 @@ export interface TenantKeyRecord {
   createdAt: string;
 }
 
+export interface UserRecord {
+  id: string;
+  email: string;
+  passwordHash: string;
+  tenantId: string;
+  role: string;
+  createdAt: string;
+}
+
+export interface ApiKeyRecord {
+  id: string;
+  tenantId: string;
+  userId: string;
+  prefix: string;
+  hash: string;
+  createdAt: string;
+}
+
 export interface EraStore {
   createTenant(input: { name: string }): Promise<TenantRecord>;
   listTenants(): Promise<TenantRecord[]>;
@@ -111,6 +129,11 @@ export interface EraStore {
   updateWorkloadState(id: string, state: WorkloadState): Promise<WorkloadRecord | undefined>;
   createRoutingDecision(input: Omit<RoutingDecisionRecord, "id" | "createdAt">): Promise<RoutingDecisionRecord>;
   listRoutingDecisions(): Promise<RoutingDecisionRecord[]>;
+
+  createUser(input: Omit<UserRecord, "id" | "createdAt">): Promise<UserRecord>;
+  getUserByEmail(email: string): Promise<UserRecord | undefined>;
+  addApiKey(input: Omit<ApiKeyRecord, "id" | "createdAt">): Promise<ApiKeyRecord>;
+  listApiKeys(tenantId: string): Promise<ApiKeyRecord[]>;
 
   addTenantKey(input: Omit<TenantKeyRecord, "id" | "createdAt">): Promise<TenantKeyRecord>;
   listTenantKeys(tenantId: string): Promise<TenantKeyRecord[]>;

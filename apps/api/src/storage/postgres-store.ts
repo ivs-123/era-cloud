@@ -1,7 +1,7 @@
 import { nanoid } from "nanoid";
 import pg from "pg";
 import type { ProviderCapability, WorkloadState } from "@era/common";
-import type { EraStore, InvoiceLineRecord, InvoiceRecord, ProviderRecord, RoutingDecisionRecord, TenantKeyRecord, TenantRecord, UsageEventRecord, WorkloadRecord } from "./store.js";
+import type { ApiKeyRecord, EraStore, InvoiceLineRecord, InvoiceRecord, ProviderRecord, RoutingDecisionRecord, TenantKeyRecord, TenantRecord, UsageEventRecord, UserRecord, WorkloadRecord } from "./store.js";
 
 const { Pool } = pg;
 
@@ -375,6 +375,32 @@ export class PostgresStore implements EraStore {
 
     await this.pool.query("delete from tenant_keys where id = $1", [id]);
   }
+
+  async createUser(input: Omit<UserRecord, "id" | "createdAt">): Promise<UserRecord> {
+    const result = await this.pool.query(
+      "insert into auth_users (id, email, password_hash, tenant_id, role) values ($1, $2, $3, $4, $5) returning *",
+      [`usr_${nanoid(12)}`, input.email, input.passwordHash, input.tenantId, input.role]
+    );
+    return mapUser(result.rows[0]);
+  }
+
+  async getUserByEmail(email: string): Promise<UserRecord | undefined> {
+    const result = await this.pool.query("select * from auth_users where email = $1", [email]);
+    return result.rows[0] ? mapUser(result.rows[0]) : undefined;
+  }
+
+  async addApiKey(input: Omit<ApiKeyRecord, "id" | "createdAt">): Promise<ApiKeyRecord> {
+    const result = await this.pool.query(
+      "insert into auth_api_keys (id, tenant_id, user_id, prefix, hash, is_active) values ($1, $2, $3, $4, $5, true) returning *",
+      [`ak_${nanoid(10)}`, input.tenantId, input.userId, input.prefix, input.hash]
+    );
+    return mapApiKey(result.rows[0]);
+  }
+
+  async listApiKeys(tenantId: string): Promise<ApiKeyRecord[]> {
+    const result = await this.pool.query("select * from auth_api_keys where tenant_id = $1 and is_active = true order by created_at desc", [tenantId]);
+    return result.rows.map(mapApiKey);
+  }
 }
 
 function mapTenant(row: any): TenantRecord {
@@ -469,6 +495,28 @@ function mapTenantKey(row: any): TenantKeyRecord {
     providerName: row.provider_name,
     keyLabel: row.key_label,
     keyPrefix: row.key_prefix,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at)
+  };
+}
+
+function mapUser(row: any): UserRecord {
+  return {
+    id: row.id,
+    email: row.email,
+    passwordHash: row.password_hash,
+    tenantId: row.tenant_id,
+    role: row.role,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at)
+  };
+}
+
+function mapApiKey(row: any): ApiKeyRecord {
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    userId: row.user_id,
+    prefix: row.prefix,
+    hash: row.hash,
     createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at)
   };
 }
