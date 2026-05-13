@@ -1,5 +1,44 @@
 # Work History
 
+## 2026-05-13 - Security, Persistence, and Partner-Readiness Fixes
+
+Focus:
+
+- Study WLD and TODO, then close high-priority blockers before provider onboarding and partner discussions.
+
+Completed:
+
+- Tightened auth middleware so operational API routes require Bearer JWT by default.
+- Reordered auth before rate limiting so tenant-aware rate limiting can work for authenticated requests.
+- Added frontend JWT propagation via `authHeaders()` and patched direct dashboard fetch calls.
+- Added tenant isolation checks for workloads, billing, BYOK, and provider instance creation.
+- Added security tests for unauthenticated access and cross-tenant billing rejection.
+- Added PostgreSQL tenant key migration and PostgresStore BYOK persistence.
+- Fixed Postgres invoice generation by inserting billing periods in the invoice transaction.
+- Added migration to relax provider FK constraints for BYOK and external provider instance identifiers.
+- Added PGlite migration validation test.
+- Replaced plaintext password storage with scrypt password hashes in the memory auth MVP.
+- Replaced weak API key hashing with SHA-256.
+- Ran `npm audit fix`; high severity findings were fixed.
+- Updated TODO and WLD to reflect current state.
+
+Verification:
+
+- `npm.cmd run typecheck` passed.
+- `npm.cmd test` passed: 4 files, 9 tests.
+- `npm.cmd run build` passed.
+- `npm.cmd audit --audit-level=high` no longer reports high severity blockers; remaining issue is moderate Next/PostCSS that requires unsafe force downgrade.
+
+Blockers:
+
+- Live PostgreSQL runtime still needs validation against Docker, Neon, Supabase, or Render PostgreSQL.
+- Auth users and generated API keys are still in-memory; suitable for demo, not production accounts.
+- Provider adapters beyond Thunder remain stubs until real API credentials and provider-specific contracts are added.
+
+Next action:
+
+- Deploy API to Render with a strong `JWT_SECRET`, connect Cloudflare DNS, and validate live PostgreSQL persistence before onboarding real customers.
+
 ## 2026-05-13 — Deployment Sprint
 
 Focus:

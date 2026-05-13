@@ -4,62 +4,58 @@
 
 ```text
 apps/
-  api/           Fastify backend API (19 endpoints)
+  api/           Fastify backend API
     src/
       config.ts
-      app.ts        bootstrap + route registration
-      server.ts     entry point
-      providers/    adapter interface, Thunder Compute, all 40 adapters
-      routes/       health, auth, tenants, providers, routing, workloads,
-                    provider-bridge, billing, benchmark, byok, inference
-      services/     routing-engine, billing-engine, benchmark, auth,
-                    gpu-normalizer
-      storage/      EraStore interface, MemoryStore, PostgresStore
-      middleware/    auth (JWT), rate-limiter
-      scripts/      migrate.ts
+      app.ts
+      server.ts
+      providers/
+      routes/
+      services/
+      storage/
+      middleware/
+      scripts/
     test/
     vitest.config.ts
-  web/           Next.js dashboard (8 tabs)
+  web/           Next.js dashboard and landing/onboarding
     app/
-      layout.tsx   AuthProvider wrapper
-      page.tsx     Dashboard (tabs: Servers, Providers, Workloads, Tenants,
-                   Billing, Benchmark, Keys, Preferences)
-      welcome.tsx  Landing page + onboarding
-      auth.tsx     JWT context provider
-      api-client.ts  Typed API client with API_BASE config
+      layout.tsx
+      page.tsx
+      welcome.tsx
+      auth.tsx
+      api-client.ts
       styles.css
 packages/
-  common/        shared TypeScript types (SUPPORTED_PROVIDERS, contracts)
+  common/        shared TypeScript contracts
 infra/
   postgres/
-    migrations/  001_initial.sql, 002_billing.sql
-docs/           12 documents (MVP, architecture, API, data model, routing,
-                roadmap, storage, deployment, partnership, business canvas,
-                deployment guide, provider checklist)
-WLD/            recovery capsule (7 files)
+    migrations/
+docs/
+WLD/
 ```
 
 ## Runtime Components
 
 - API: Fastify, TypeScript, Node.js 22+
-- Web: Next.js 16 (Turbopack)
+- Web: Next.js 16 static export for GitHub Pages
 - Shared types: `@era/common`
-- Persistence: memory (dev) + postgres (compiles, untested)
-- Auth: JWT (jsonwebtoken), rate limiting (in-memory)
-- Database: PostgreSQL (migrations ready, not validated)
-- Local DB: Docker Compose (Docker unavailable on Windows)
+- Persistence: memory mode for tests/dev, PostgreSQL mode for production
+- Auth: JWT, scrypt password hashing in memory-mode auth MVP, API keys with SHA-256 internal hashes
+- Rate limiting: in-memory, 600 requests/minute
+- Database: PostgreSQL migrations validated with PGlite; live PostgreSQL runtime pending
+- Local DB option: Docker Compose
 
-## API Surface (19 endpoints)
+## API Surface
 
 - `GET /health`
-- `POST /api/v1/auth/register` — returns JWT + API key
-- `POST /api/v1/auth/login` — returns JWT
-- `GET /api/v1/auth/me` — current user
-- `POST /api/v1/auth/api-keys` — generate dev API key
-- `GET /api/v1/auth/api-keys` — list keys
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `GET /api/v1/auth/me`
+- `POST /api/v1/auth/api-keys`
+- `GET /api/v1/auth/api-keys`
 - `GET /api/v1/tenants`
 - `POST /api/v1/tenants`
-- `PUT /api/v1/tenants/preferences` — provider prefs
+- `PUT /api/v1/tenants/preferences`
 - `GET /api/v1/tenants/preferences`
 - `GET /api/v1/providers`
 - `POST /api/v1/admin/providers`
@@ -78,34 +74,48 @@ WLD/            recovery capsule (7 files)
 - `GET /api/v1/billing/invoices`
 - `POST /api/v1/billing/invoices/generate`
 - `GET /api/v1/benchmark/gpu`
-- `POST /api/v1/keys` — BYOK
+- `POST /api/v1/keys`
 - `GET /api/v1/keys`
 - `DELETE /api/v1/keys/:id`
-- `POST /v1/chat/completions` — OpenAI-compatible
+- `POST /v1/chat/completions`
 - `GET /v1/models`
 
-## Providers (40 total, 4 layers)
+## Security Posture
 
-| Layer | Providers | Count |
-|-------|-----------|-------|
-| GPU Cloud | Thunder, Hetzner, RunPod, Lambda, Vultr, DO, Linode, Vast.ai, FluidStack, MassedCompute, OVHcloud, AWS, GCP, Azure, Oracle, IBM, Alibaba, Tencent, Huawei, Baidu, Yandex, VK Cloud, SberCloud, Cloud.ru, Selectel | 24 |
-| Inference API | DeepInfra, Together, Groq, Lepton, Cerebras, SambaNova, OpenAI, Anthropic, Fireworks, DeepL, AssemblyAI | 11 |
-| Edge/CDN | Cloudflare, Akamai, Fastly | 3 |
-| Marketplace | GitHub, Vercel | 2 |
+- Operational routes require Bearer JWT by default.
+- Public routes: health, register, login, GPU benchmark.
+- Workloads, billing, BYOK, and provider instance creation enforce tenant match.
+- Frontend sends JWT from `localStorage` via `authHeaders()`.
+- Tests include unauthenticated route rejection and cross-tenant billing rejection.
+
+## Providers
+
+Provider adapter architecture exists with a unified interface and registry.
+
+Provider categories:
+
+- GPU cloud providers
+- Inference API providers
+- Edge/CDN providers
+- Marketplace providers
+
+Current caveat:
+
+- Most adapters are stubs until real provider credentials, product terms, and API-specific provisioning flows are connected.
 
 ## Domain Architecture
 
-- `eracloud.pro` — registered, Cloudflare DNS
-- Planned: `app.eracloud.pro`, `api.eracloud.pro`, `docs.eracloud.pro`
-- Brand decision pending: `eracloud.pro` vs `eraone` ecosystem
+- `eracloud.pro`: registered, Cloudflare DNS
+- Planned: `app.eracloud.pro`, `api.eracloud.pro`, `docs.eracloud.pro`, `status.eracloud.pro`
+- Brand decision pending: `eracloud.pro` vs `eraone` ecosystem umbrella
 
 ## Key Architectural Patterns
 
-- **Provider Adapter:** unified interface → 40 implementations
-- **GPU Normalization:** canonical profile names (h100-80gb, a100-80gb) → cross-provider matching
-- **Routing Engine:** cheapest/balanced/low-latency + preferred/blocked providers
-- **BYOK:** client brings own keys → direct routing, fixed SaaS fee
-- **Auth:** JWT (24h) + API keys (era_... prefix) + rate limiting (600/min)
+- Provider adapter: unified interface with provider-specific implementations
+- GPU normalization: canonical GPU profile names for cross-provider matching
+- Routing engine: cheapest, balanced, low-latency, preferred, blocked
+- BYOK: tenant-owned provider keys, currently storing only prefixes in app storage
+- Billing: usage events, projected spend, invoice generation
 
 ## Verification Commands
 
@@ -113,5 +123,11 @@ WLD/            recovery capsule (7 files)
 npm.cmd run typecheck
 npm.cmd test
 npm.cmd run build
-$env:SKIP_AUTH="true"; npm.cmd test  # for auth-gated tests
+npm.cmd audit --audit-level=high
 ```
+
+Current automated coverage:
+
+- 4 API test files
+- 9 tests
+- SQL migration validation via PGlite

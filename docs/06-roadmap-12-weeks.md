@@ -54,7 +54,10 @@
 - Completed: `GET /api/v1/workloads/{id}`
 - Completed: `POST /api/v1/workloads/{id}/stop`
 - Completed: in-memory routing decision audit records
-- Pending: provider adapter contract and real provider implementation
+- Completed: provider adapter contract and registry
+- Completed: Thunder Compute adapter scaffold
+- Pending: production credentials and real provider validation for each provider adapter
+- Pending: live PostgreSQL validation against Docker/Neon/Supabase/Render PostgreSQL
 
 ## Phase C: Metering + Billing (Week 6-8)
 

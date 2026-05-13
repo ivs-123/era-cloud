@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { ProviderRegistry } from "../providers/registry.js";
 import type { EraStore } from "../storage/store.js";
+import { canAccessTenant, rejectTenantAccess } from "./tenant-access.js";
 
 export async function registerProviderBridgeRoutes(
   app: FastifyInstance,
@@ -80,6 +81,10 @@ export async function registerProviderBridgeRoutes(
     const params = z.object({ name: z.string().min(2) }).parse(request.params);
     const body = createInstanceSchema.parse(request.body);
     const adapter = registry.get(params.name);
+
+    if (!canAccessTenant(request, body.tenant_id)) {
+      return rejectTenantAccess(reply);
+    }
 
     if (!adapter) {
       return reply.code(404).send({ error: "PROVIDER_NOT_FOUND" });

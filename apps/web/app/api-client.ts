@@ -1,5 +1,19 @@
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "https://api.eracloud.pro";
 
+export function authHeaders(): Record<string, string> {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  try {
+    const raw = localStorage.getItem("era_auth");
+    const token = raw ? JSON.parse(raw).token : null;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
+
 export function apiFetch(path: string, options?: RequestInit & { params?: Record<string, string> }): Promise<Response> {
   const url = new URL(`${API_BASE}${path}`);
 
@@ -15,6 +29,7 @@ export function apiFetch(path: string, options?: RequestInit & { params?: Record
     ...fetchOptions,
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders(),
       ...fetchOptions.headers
     }
   });
@@ -37,6 +52,7 @@ async function request<T>(path: string, options?: FetchOptions): Promise<T> {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders(),
       ...options?.headers
     }
   });

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { createToken, generateApiKey, hashApiKey } from "../services/auth.js";
+import { createToken, generateApiKey, hashApiKey, hashPassword, verifyPassword } from "../services/auth.js";
 import type { EraStore } from "../storage/store.js";
 
 const registerSchema = z.object({
@@ -14,7 +14,7 @@ const loginSchema = z.object({
   password: z.string().min(1)
 });
 
-const users = new Map<string, { id: string; email: string; password: string; tenantId: string; role: string }>();
+const users = new Map<string, { id: string; email: string; passwordHash: string; tenantId: string; role: string }>();
 const apiKeys = new Map<string, { tenantId: string; userId: string; prefix: string }>();
 
 export async function registerAuthRoutes(app: FastifyInstance, store: EraStore) {
@@ -34,7 +34,7 @@ export async function registerAuthRoutes(app: FastifyInstance, store: EraStore) 
     users.set(userId, {
       id: userId,
       email: body.email,
-      password: body.password,
+      passwordHash: hashPassword(body.password),
       tenantId: tenant.id,
       role
     });
@@ -67,7 +67,7 @@ export async function registerAuthRoutes(app: FastifyInstance, store: EraStore) 
 
     const user = [...users.values()].find((user) => user.email === body.email);
 
-    if (!user || user.password !== body.password) {
+    if (!user || !verifyPassword(body.password, user.passwordHash)) {
       return reply.code(401).send({ error: "INVALID_CREDENTIALS" });
     }
 

@@ -114,7 +114,7 @@ export interface EraStore {
 
   addTenantKey(input: Omit<TenantKeyRecord, "id" | "createdAt">): Promise<TenantKeyRecord>;
   listTenantKeys(tenantId: string): Promise<TenantKeyRecord[]>;
-  removeTenantKey(id: string): Promise<void>;
+  removeTenantKey(id: string, tenantId?: string): Promise<void>;
 
   recordUsageEvent(input: Omit<UsageEventRecord, "id">): Promise<UsageEventRecord>;
   listUsageEvents(params: { tenantId: string; from?: string; to?: string }): Promise<UsageEventRecord[]>;
@@ -123,4 +123,3 @@ export interface EraStore {
 
   close?(): Promise<void>;
 }
-

@@ -2,6 +2,49 @@
 
 ## Actions
 
+### 2026-05-13 - Security, Persistence, and Partner-Readiness Fixes
+
+Action:
+
+- Hardened API access, tenant isolation, BYOK persistence, PostgreSQL migration coverage, and auth internals.
+
+Files/Areas:
+
+- `apps/api/src/middleware/auth.ts`
+- `apps/api/src/app.ts`
+- `apps/api/src/routes/tenant-access.ts`
+- `apps/api/src/routes/workloads.ts`
+- `apps/api/src/routes/billing.ts`
+- `apps/api/src/routes/byok.ts`
+- `apps/api/src/routes/provider-bridge.ts`
+- `apps/api/src/services/auth.ts`
+- `apps/api/src/storage/store.ts`
+- `apps/api/src/storage/memory-store.ts`
+- `apps/api/src/storage/postgres-store.ts`
+- `apps/api/test/security.test.ts`
+- `apps/api/test/postgres-migrations.test.ts`
+- `apps/web/app/api-client.ts`
+- `apps/web/app/page.tsx`
+- `infra/postgres/migrations/003_tenant_keys.sql`
+- `infra/postgres/migrations/004_relax_provider_references.sql`
+- `TODO.md`
+- `WLD/current-focus.md`
+- `WLD/architecture-snapshot.md`
+- `WLD/history.md`
+- `WLD/action-registry.md`
+
+Verification:
+
+- `npm.cmd run typecheck`
+- `npm.cmd test` - 4 files, 9 tests
+- `npm.cmd run build`
+- `npm.cmd audit --audit-level=high`
+
+Notes:
+
+- Remaining audit issue is moderate Next/PostCSS and npm suggests unsafe `--force` downgrade.
+- Live PostgreSQL server validation remains pending, but SQL migrations now apply in PGlite.
+
 ### 2026-05-12 — Cloud-First Positioning
 
 Action:

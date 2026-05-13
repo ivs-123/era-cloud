@@ -36,8 +36,8 @@ export async function buildApp(config: ApiConfig = loadConfig()) {
     origin: true
   });
 
-  await registerRateLimiter(app);
   await registerAuthMiddleware(app);
+  await registerRateLimiter(app);
 
   await registerHealthRoutes(app);
   await registerAuthRoutes(app, store);

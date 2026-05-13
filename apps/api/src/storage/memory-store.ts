@@ -186,7 +186,12 @@ export class MemoryStore implements EraStore {
     return [...this.tenantKeys.values()].filter((key) => key.tenantId === tenantId);
   }
 
-  async removeTenantKey(id: string): Promise<void> {
+  async removeTenantKey(id: string, tenantId?: string): Promise<void> {
+    const key = this.tenantKeys.get(id);
+    if (tenantId && key?.tenantId !== tenantId) {
+      return;
+    }
+
     this.tenantKeys.delete(id);
   }
 }

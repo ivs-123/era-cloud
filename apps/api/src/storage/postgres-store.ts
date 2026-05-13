@@ -276,6 +276,13 @@ export class PostgresStore implements EraStore {
     try {
       await client.query("begin");
       await client.query(
+        `insert into billing_periods (id, tenant_id, period_start, period_end, status)
+         values ($1, $2, date_trunc('month', now()), now(), 'drafted')
+         on conflict (id) do nothing`,
+        [input.billingPeriodId, input.tenantId]
+      );
+
+      await client.query(
         `insert into invoices (id, tenant_id, billing_period_id, subtotal_usd, markup_usd, total_usd, currency, status, issued_at)
          values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
         [
@@ -341,17 +348,33 @@ export class PostgresStore implements EraStore {
   }
 
   async addTenantKey(input: Omit<TenantKeyRecord, "id" | "createdAt">): Promise<TenantKeyRecord> {
-    const id = `key_${nanoid(10)}`;
-    const createdAt = new Date().toISOString();
+    const result = await this.pool.query(
+      `insert into tenant_keys (id, tenant_id, provider_name, key_label, key_prefix)
+       values ($1, $2, $3, $4, $5)
+       returning *`,
+      [`key_${nanoid(10)}`, input.tenantId, input.providerName, input.keyLabel, input.keyPrefix]
+    );
 
-    return { ...input, id, createdAt };
+    return mapTenantKey(result.rows[0]);
   }
 
   async listTenantKeys(tenantId: string): Promise<TenantKeyRecord[]> {
-    return [];
+    const result = await this.pool.query(
+      "select * from tenant_keys where tenant_id = $1 order by created_at desc",
+      [tenantId]
+    );
+
+    return result.rows.map(mapTenantKey);
   }
 
-  async removeTenantKey(id: string): Promise<void> {}
+  async removeTenantKey(id: string, tenantId?: string): Promise<void> {
+    if (tenantId) {
+      await this.pool.query("delete from tenant_keys where id = $1 and tenant_id = $2", [id, tenantId]);
+      return;
+    }
+
+    await this.pool.query("delete from tenant_keys where id = $1", [id]);
+  }
 }
 
 function mapTenant(row: any): TenantRecord {
@@ -439,3 +462,13 @@ function mapInvoice(row: any): InvoiceRecord {
   };
 }
 
+function mapTenantKey(row: any): TenantKeyRecord {
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    providerName: row.provider_name,
+    keyLabel: row.key_label,
+    keyPrefix: row.key_prefix,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at)
+  };
+}

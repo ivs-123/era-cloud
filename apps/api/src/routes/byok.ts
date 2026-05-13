@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { EraStore } from "../storage/store.js";
+import { canAccessTenant, getAuthTenantId, rejectTenantAccess } from "./tenant-access.js";
 
 const addKeySchema = z.object({
   tenant_id: z.string().min(2),
@@ -12,6 +13,10 @@ const addKeySchema = z.object({
 export async function registerByokRoutes(app: FastifyInstance, store: EraStore) {
   app.post("/api/v1/keys", async (request, reply) => {
     const body = addKeySchema.parse(request.body);
+
+    if (!canAccessTenant(request, body.tenant_id)) {
+      return rejectTenantAccess(reply);
+    }
 
     if (!(await store.getTenant(body.tenant_id))) {
       return reply.code(404).send({ error: "TENANT_NOT_FOUND" });
@@ -41,6 +46,10 @@ export async function registerByokRoutes(app: FastifyInstance, store: EraStore) 
   app.get("/api/v1/keys", async (request, reply) => {
     const query = z.object({ tenant_id: z.string().min(2) }).parse(request.query);
 
+    if (!canAccessTenant(request, query.tenant_id)) {
+      return rejectTenantAccess(reply);
+    }
+
     const keys = await store.listTenantKeys(query.tenant_id);
 
     return {
@@ -57,7 +66,7 @@ export async function registerByokRoutes(app: FastifyInstance, store: EraStore) 
 
   app.delete("/api/v1/keys/:id", async (request, reply) => {
     const params = z.object({ id: z.string().min(2) }).parse(request.params);
-    await store.removeTenantKey(params.id);
+    await store.removeTenantKey(params.id, getAuthTenantId(request));
 
     return { data: { id: params.id, removed: true } };
   });

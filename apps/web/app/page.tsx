@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, API_BASE, type ApiProvider, type ApiTenant, type ApiWorkload } from "./api-client.js";
+import { api, API_BASE, authHeaders, type ApiProvider, type ApiTenant, type ApiWorkload } from "./api-client.js";
 import { useAuth } from "./auth.js";
 import WelcomePage from "./welcome.js";
 
@@ -458,7 +458,9 @@ function CreateWorkloadForm({ tenants, providers, onCreated }: { tenants: ApiTen
 
   const loadKeys = async (tid: string) => {
     try {
-      const r = await fetch(`${API_BASE}/api/v1/keys?tenant_id=${encodeURIComponent(tid)}`);
+      const r = await fetch(`${API_BASE}/api/v1/keys?tenant_id=${encodeURIComponent(tid)}`, {
+        headers: authHeaders()
+      });
       const d = await r.json();
       setKeys(d.data ?? []);
     } catch { setKeys([]); }
@@ -554,7 +556,9 @@ function BillingPanel({ tenants, workloads, providers }: { tenants: ApiTenant[];
     if (!selectedTenant) return;
     setLoadingEstimate(true);
     try {
-      const response = await fetch(`${API_BASE}/api/v1/billing/estimate?tenant_id=${encodeURIComponent(selectedTenant)}`);
+      const response = await fetch(`${API_BASE}/api/v1/billing/estimate?tenant_id=${encodeURIComponent(selectedTenant)}`, {
+        headers: authHeaders()
+      });
       const result = await response.json();
       setEstimate(result.data);
     } catch {
@@ -568,10 +572,12 @@ function BillingPanel({ tenants, workloads, providers }: { tenants: ApiTenant[];
     try {
       await fetch(`${API_BASE}/api/v1/billing/invoices/generate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ tenant_id: selectedTenant })
       });
-      const response = await fetch(`${API_BASE}/api/v1/billing/invoices?tenant_id=${encodeURIComponent(selectedTenant)}`);
+      const response = await fetch(`${API_BASE}/api/v1/billing/invoices?tenant_id=${encodeURIComponent(selectedTenant)}`, {
+        headers: authHeaders()
+      });
       const result = await response.json();
       setInvoices(result.data ?? []);
     } catch {
@@ -765,7 +771,9 @@ function KeysPanel({ tenants }: { tenants: ApiTenant[] }) {
     if (!selectedTenant) return;
     setLoading(true);
     try {
-      const r = await fetch(`${API_BASE}/api/v1/keys?tenant_id=${encodeURIComponent(selectedTenant)}`);
+      const r = await fetch(`${API_BASE}/api/v1/keys?tenant_id=${encodeURIComponent(selectedTenant)}`, {
+        headers: authHeaders()
+      });
       const data = await r.json();
       setKeys(data.data ?? []);
     } catch { setKeys([]); }
@@ -780,7 +788,7 @@ function KeysPanel({ tenants }: { tenants: ApiTenant[] }) {
     try {
       await fetch(`${API_BASE}/api/v1/keys`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           tenant_id: selectedTenant,
           provider_name: newProvider,
@@ -796,7 +804,7 @@ function KeysPanel({ tenants }: { tenants: ApiTenant[] }) {
   };
 
   const removeKey = async (id: string) => {
-    await fetch(`${API_BASE}/api/v1/keys/${id}`, { method: "DELETE" });
+    await fetch(`${API_BASE}/api/v1/keys/${id}`, { method: "DELETE", headers: authHeaders() });
     loadKeys();
   };
 
@@ -868,7 +876,7 @@ function GettingStarted({ onSync }: { onSync: () => void }) {
       try {
         await fetch(`${API_BASE}/api/v1/providers/${p}/sync`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...authHeaders() },
           body: "{}"
         });
       } catch {}
@@ -998,7 +1006,9 @@ function InstancesPanel({ providers }: { providers: ApiProvider[] }) {
   const loadInstances = async (providerName: string) => {
     setLoading(true);
     try {
-      const r = await fetch(`${API_BASE}/api/v1/providers/${providerName}/instances`);
+      const r = await fetch(`${API_BASE}/api/v1/providers/${providerName}/instances`, {
+        headers: authHeaders()
+      });
       const d = await r.json();
       setInstances((d.data ?? []).map((i: Record<string, unknown>) => ({ ...i, providerName })));
     } catch { setInstances([]); }

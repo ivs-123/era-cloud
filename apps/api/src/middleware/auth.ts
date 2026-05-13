@@ -11,10 +11,7 @@ const PUBLIC_ROUTES = new Set([
   "/health",
   "/api/v1/auth/register",
   "/api/v1/auth/login",
-  "/api/v1/benchmark/gpu",
-  "/api/v1/providers",
-  "/api/v1/workloads",
-  "/api/v1/tenants"
+  "/api/v1/benchmark/gpu"
 ]);
 
 export async function registerAuthMiddleware(app: FastifyInstance) {
@@ -26,9 +23,7 @@ export async function registerAuthMiddleware(app: FastifyInstance) {
     const rawUrl = request.url ?? "/";
     const path = rawUrl.split("?")[0] ?? "/";
 
-    const isSyncRoute = path.startsWith("/api/v1/providers/") && path.endsWith("/sync");
-
-    if (PUBLIC_ROUTES.has(path) || path.startsWith("/api/v1/benchmark") || isSyncRoute) {
+    if (PUBLIC_ROUTES.has(path) || path.startsWith("/api/v1/benchmark")) {
       return;
     }
 

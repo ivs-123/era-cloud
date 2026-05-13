@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { NoCapacityMatchError, simulateRouting } from "../services/routing-engine.js";
 import type { EraStore } from "../storage/store.js";
+import { canAccessTenant, getAuthTenantId, rejectTenantAccess } from "./tenant-access.js";
 
 const createWorkloadSchema = z.object({
   tenant_id: z.string().min(2),
@@ -16,9 +17,16 @@ const createWorkloadSchema = z.object({
 });
 
 export async function registerWorkloadRoutes(app: FastifyInstance, store: EraStore) {
-  app.get("/api/v1/workloads", async () => ({
-    data: await store.listWorkloads()
-  }));
+  app.get("/api/v1/workloads", async (request) => {
+    const workloads = await store.listWorkloads();
+    const authTenantId = getAuthTenantId(request);
+
+    if (authTenantId) {
+      return { data: workloads.filter((workload) => workload.tenantId === authTenantId) };
+    }
+
+    return { data: workloads };
+  });
 
   app.get("/api/v1/workloads/:id", async (request, reply) => {
     const params = z.object({ id: z.string().min(2) }).parse(request.params);
@@ -26,6 +34,10 @@ export async function registerWorkloadRoutes(app: FastifyInstance, store: EraSto
 
     if (!workload) {
       return reply.code(404).send({ error: "WORKLOAD_NOT_FOUND" });
+    }
+
+    if (!canAccessTenant(request, workload.tenantId)) {
+      return rejectTenantAccess(reply);
     }
 
     return { data: workload };
@@ -39,6 +51,10 @@ export async function registerWorkloadRoutes(app: FastifyInstance, store: EraSto
       return reply.code(404).send({ error: "WORKLOAD_NOT_FOUND" });
     }
 
+    if (!canAccessTenant(request, workload.tenantId)) {
+      return rejectTenantAccess(reply);
+    }
+
     if (workload.state === "stopped") {
       return { data: workload };
     }
@@ -49,6 +65,10 @@ export async function registerWorkloadRoutes(app: FastifyInstance, store: EraSto
 
   app.post("/api/v1/workloads", async (request, reply) => {
     const body = createWorkloadSchema.parse(request.body);
+
+    if (!canAccessTenant(request, body.tenant_id)) {
+      return rejectTenantAccess(reply);
+    }
 
     if (!(await store.getTenant(body.tenant_id))) {
       return reply.code(404).send({ error: "TENANT_NOT_FOUND" });
