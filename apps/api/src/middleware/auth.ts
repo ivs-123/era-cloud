@@ -11,7 +11,10 @@ const PUBLIC_ROUTES = new Set([
   "/health",
   "/api/v1/auth/register",
   "/api/v1/auth/login",
-  "/api/v1/benchmark/gpu"
+  "/api/v1/benchmark/gpu",
+  "/api/v1/providers",
+  "/api/v1/workloads",
+  "/api/v1/tenants"
 ]);
 
 export async function registerAuthMiddleware(app: FastifyInstance) {
