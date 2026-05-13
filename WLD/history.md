@@ -1,5 +1,44 @@
 # Work History
 
+## 2026-05-13 — Deployment Sprint
+
+Focus:
+
+- Ship ERA Cloud to production. GitHub repo, CI/CD pipeline, public site, custom domain.
+
+Completed:
+
+- GitHub repo: `ivs-123/era-cloud` (public). Pushed 28 commits.
+- GitHub Actions: `deploy.yml` — auto-deploy to GitHub Pages on every push.
+- Frontend live: `https://ivs-123.github.io/era-cloud/` — 200 OK.
+- Next.js static export (`output: "export"`) for GitHub Pages compatibility.
+- Custom domain `eracloud.pro` configured in GitHub Pages (needs Cloudflare CNAME).
+- CNAME file auto-added to Pages deployment artifact.
+- `render.yaml` blueprint for one-click API deploy on Render.
+- `railway.json` + `vercel.json` deployment configs for alternatives.
+- Landing page: "Already on AWS? Save 30-50% without switching" (BYOK/Hybrid/Cost Dashboard).
+- Getting Started wizard in dashboard for new users.
+- Live pricing on landing page from benchmark API.
+- Comprehensive `TODO.md` — 60+ items across immediate/short-term/medium-term.
+- WLD updated: current-focus + TODO + architecture snapshot.
+
+Verification:
+
+- Typecheck, tests (5/5), production build — all pass.
+- GitHub Actions: 4 successful deploys, 1 initial failure.
+- Site verified: 200 OK, proper HTML + JS + CSS delivery.
+
+Blockers:
+
+- API backend not deployed — needs Render account.
+- Cloudflare DNS CNAME not set — `eracloud.pro` → `ivs-123.github.io`.
+- No real provider API tokens (except Thunder Compute).
+
+Next action:
+
+- Add Cloudflare CNAME record.
+- Click "Deploy to Render" for API.
+
 ## 2026-05-12 — Cloud-First Positioning
 
 Focus:
