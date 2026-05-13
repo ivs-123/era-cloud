@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "./auth.js";
 import { API_BASE } from "./api-client.js";
 
@@ -90,6 +90,8 @@ export default function WelcomePage() {
           <Step number="3" title="Deploy" desc="Server provisions in seconds. Stop anytime." />
         </div>
 
+        <PricingPreview />
+
         <div style={{ width: 400, background: "white", borderRadius: 12, padding: 32, marginTop: 40, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
           {mode === "register" ? (
             <form onSubmit={handleRegister} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -137,6 +139,49 @@ function Step({ number, title, desc }: { number: string; title: string; desc: st
       <div>
         <div style={{ color: "white", fontWeight: 600, fontSize: 15 }}>{title}</div>
         <div style={{ color: "#a9b8ae", fontSize: 13 }}>{desc}</div>
+      </div>
+    </div>
+  );
+}
+
+function PricingPreview() {
+  const [prices, setPrices] = useState<Array<{ canonical_gpu: string; min_price: number; cheapest_provider: string; provider_count: number }>>([]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/v1/benchmark/gpu`)
+      .then(r => r.json())
+      .then(d => setPrices((d.data ?? []).slice(0, 6)))
+      .catch(() => {});
+  }, []);
+
+  if (prices.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: 40, textAlign: "center" }}>
+      <p style={{ color: "#4ade80", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", margin: "0 0 8px" }}>
+        LIVE PRICING
+      </p>
+      <p style={{ color: "#a9b8ae", fontSize: 14, margin: "0 0 16px" }}>
+        Real-time GPU prices across all connected providers
+      </p>
+      <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+        {prices.map(p => (
+          <div key={p.canonical_gpu} style={{
+            background: "rgba(255,255,255,0.06)", borderRadius: 8,
+            border: "1px solid rgba(255,255,255,0.08)", padding: "12px 16px",
+            minWidth: 140, textAlign: "center"
+          }}>
+            <div style={{ color: "white", fontWeight: 700, fontFamily: "monospace", fontSize: 14, marginBottom: 4 }}>
+              {p.canonical_gpu}
+            </div>
+            <div style={{ color: "#4ade80", fontSize: 20, fontWeight: 700 }}>
+              ${p.min_price.toFixed(2)}<span style={{ fontSize: 13, color: "#a9b8ae" }}>/h</span>
+            </div>
+            <div style={{ color: "#a9b8ae", fontSize: 11, marginTop: 2 }}>
+              from {p.cheapest_provider} · {p.provider_count} providers
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

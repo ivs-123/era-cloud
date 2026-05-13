@@ -88,6 +88,10 @@ export default function HomePage() {
           </div>
         </header>
 
+        {providers.length === 0 && !loading ? (
+          <GettingStarted onSync={fetchData} />
+        ) : (
+          <>
         <div className="metrics">
           <div>
             <span>Active workloads</span>
@@ -119,6 +123,8 @@ export default function HomePage() {
           <PrefsPanel providers={providers} />
         ) : (
           <TenantsTable tenants={tenants} />
+        )}
+          </>
         )}
       </section>
     </main>
@@ -848,6 +854,76 @@ function KeysPanel({ tenants }: { tenants: ApiTenant[] }) {
           ($200-2,000/mo depending on volume). Zero markup on compute costs.
         </p>
       </div>
+    </div>
+  );
+}
+
+function GettingStarted({ onSync }: { onSync: () => void }) {
+  const [syncing, setSyncing] = useState(false);
+  const providers = ["hetzner", "lambdalabs", "vastai", "aws", "yandex-cloud", "vk-cloud", "deepinfra", "groq", "together"];
+
+  const syncAll = async () => {
+    setSyncing(true);
+    for (const p of providers) {
+      try {
+        await fetch(`${API_BASE}/api/v1/providers/${p}/sync`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}"
+        });
+      } catch {}
+    }
+    setSyncing(false);
+    onSync();
+  };
+
+  return (
+    <div style={{
+      background: "var(--paper)", border: "2px solid var(--accent)", borderRadius: 12,
+      padding: 36, textAlign: "center", marginBottom: 24
+    }}>
+      <div style={{ fontSize: 40, marginBottom: 12 }}>⚡</div>
+      <h2 style={{ margin: "0 0 8px", fontSize: 24 }}>Welcome to your cloud</h2>
+      <p style={{ color: "var(--muted)", fontSize: 15, margin: "0 0 24px", maxWidth: 500, marginLeft: "auto", marginRight: "auto", lineHeight: 1.6 }}>
+        Your control plane is empty. Connect providers to start deploying GPU servers and routing inference.
+      </p>
+
+      <div style={{ display: "flex", gap: 24, justifyContent: "center", flexWrap: "wrap", marginBottom: 24 }}>
+        <StepCard number="1" title="Connect providers" desc="Sync GPU clouds and inference APIs" />
+        <StepCard number="2" title="Deploy server" desc="Pick GPU, region. We find cheapest provider." />
+        <StepCard number="3" title="One bill" desc="All usage in one invoice. Save up to 70%." />
+      </div>
+
+      <button
+        type="button"
+        onClick={syncAll}
+        disabled={syncing}
+        style={{ padding: "14px 32px", fontSize: 16, fontWeight: 600 }}
+      >
+        {syncing ? "Syncing providers..." : `Connect ${providers.length} providers`}
+      </button>
+      <p style={{ color: "var(--muted)", fontSize: 13, margin: "8px 0 0" }}>
+        Hetzner, AWS, Yandex, DeepInfra, Groq and {providers.length - 5} more
+      </p>
+    </div>
+  );
+}
+
+function StepCard({ number, title, desc }: { number: string; title: string; desc: string }) {
+  return (
+    <div style={{
+      background: "var(--panel)", borderRadius: 8, padding: "16px 20px",
+      minWidth: 160, textAlign: "center"
+    }}>
+      <div style={{
+        width: 32, height: 32, borderRadius: "50%", background: "var(--accent)",
+        color: "white", display: "inline-flex", alignItems: "center", justifyContent: "center",
+        fontWeight: 700, fontSize: 16, marginBottom: 8
+      }}>
+        {number}
+      </div>
+      <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{title}</div>
+      <div style={{ color: "var(--muted)", fontSize: 12 }}>{desc}</div>
     </div>
   );
 }
