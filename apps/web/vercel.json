@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd ../.. && npm run deploy:web",
+  "outputDirectory": "../../apps/web/.next",
+  "installCommand": "cd ../.. && npm ci --workspaces --if-present",
+  "framework": "nextjs"
+}

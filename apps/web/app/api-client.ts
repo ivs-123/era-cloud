@@ -1,4 +1,4 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "https://api.eracloud.pro";
 
 export function apiFetch(path: string, options?: RequestInit & { params?: Record<string, string> }): Promise<Response> {
   const url = new URL(`${API_BASE}${path}`);

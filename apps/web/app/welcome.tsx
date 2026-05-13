@@ -92,6 +92,41 @@ export default function WelcomePage() {
 
         <PricingPreview />
 
+        <div style={{ marginTop: 48, maxWidth: 700, textAlign: "center" }}>
+          <p style={eyebrowStyle}>ALREADY ON AWS, GCP, OR YANDEX?</p>
+          <h2 style={{ fontSize: 28, margin: "8px 0", color: "white" }}>
+            Save 30–50% without switching
+          </h2>
+          <p style={{ color: "#a9b8ae", fontSize: 15, lineHeight: 1.6, marginTop: 8 }}>
+            Bring your own keys. ERA Cloud monitors pricing across your existing providers,
+            auto-switches to cheaper regions and reserved instances.
+            You keep your cloud. We optimize your bill.
+          </p>
+          <div style={{ display: "flex", gap: 20, justifyContent: "center", marginTop: 20, flexWrap: "wrap" }}>
+            <div style={{
+              background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 8, padding: "16px 20px", minWidth: 200
+            }}>
+              <div style={{ color: "white", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>BYOK</div>
+              <div style={{ color: "#a9b8ae", fontSize: 13 }}>Your AWS/GCP key. Our optimization. Fixed SaaS fee.</div>
+            </div>
+            <div style={{
+              background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 8, padding: "16px 20px", minWidth: 200
+            }}>
+              <div style={{ color: "white", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Hybrid</div>
+              <div style={{ color: "#a9b8ae", fontSize: 13 }}>Keep critical workloads on your cloud. Burst to 40+ cheaper providers via ERA.</div>
+            </div>
+            <div style={{
+              background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 8, padding: "16px 20px", minWidth: 200
+            }}>
+              <div style={{ color: "white", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Cost Dashboard</div>
+              <div style={{ color: "#a9b8ae", fontSize: 13 }}>One view: AWS vs Hetzner vs Yandex. Move workloads with one click.</div>
+            </div>
+          </div>
+        </div>
+
         <div style={{ width: 400, background: "white", borderRadius: 12, padding: 32, marginTop: 40, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
           {mode === "register" ? (
             <form onSubmit={handleRegister} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
