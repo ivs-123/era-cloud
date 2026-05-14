@@ -109,3 +109,22 @@
 3. Add PostgreSQL migration tooling.
 4. Implement minimal `tenants` and `providers` APIs.
 5. Add integration tests for provider registration/listing.
+
+---
+
+## Long-Term Strategy: Own GPU Virtualization
+
+### Today
+Aggregate 40+ providers. Route to cheapest. Mark up the difference. 
+Thunder Compute's timeshare model is our #1 partner for dev/prototyping pricing.
+
+### Tomorrow (Post-revenue)
+Implement own GPU timeshare/virtualization layer:
+- **TCP-based GPU scheduling** — decouple GPU from server, distribute idle cycles
+- **Prototyping tier** — pay-per-use with preemption, 50% below market
+- **Production tier** — dedicated GPU with guaranteed availability
+- **Hybrid routing** — burst spillover to external providers when own capacity is full
+
+This is our moat. Once we control the virtualization layer, our margins jump from 30-50% (aggregation) to 80-90% (own infra + aggregation fallback).
+
+Reference: ThunderCompute (YC S24) — GPU virtualization, timeshare scheduling, prototyping mode, zero egress fees. Proved the model works.

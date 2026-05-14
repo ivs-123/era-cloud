@@ -67,14 +67,14 @@ export default function WelcomePage() {
 
       <main style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40 }}>
         <div style={{ textAlign: "center", maxWidth: 700, marginBottom: 40 }}>
-          <p style={eyebrowStyle}>ONE PLATFORM. 40+ CLOUDS. ZERO COMPLEXITY.</p>
+          <p style={eyebrowStyle}>ONE PLATFORM. 40+ CLOUDS. UP TO 80% CHEAPER.</p>
           <h1 style={{ fontSize: 48, margin: "12px 0", color: "white", lineHeight: 1.15 }}>
-            GPU servers,<br />any provider, one click
+            Same GPU. Any provider.<br />One click. 5x cheaper.
           </h1>
           <p style={{ fontSize: 18, color: "#a9b8ae", lineHeight: 1.6, marginTop: 16 }}>
-            A100 · H100 · L40S · RTX 4090 across AWS, GCP, Azure, Yandex,
-            Hetzner, Alibaba, Thunder Compute and 30+ more.
-            <strong style={{ color: "white" }}> One dashboard. One bill. Zero vendor lock-in.</strong>
+            H100 from <strong style={{ color: "white" }}>$1.30/h</strong>. A100 from <strong style={{ color: "white" }}>$0.55/h</strong>.
+            Across AWS, GCP, Azure, Yandex, Hetzner, Alibaba, Thunder Compute and 30+ more.
+            <strong style={{ color: "#4ade80" }}> One dashboard. One bill. Zero lock-in.</strong>
           </p>
         </div>
 
