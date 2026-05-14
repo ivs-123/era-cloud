@@ -2,6 +2,27 @@
 
 ## Actions
 
+### 2026-05-14 — Stage 1 Finalization & GPU Virtualization Strategy
+
+Action:
+
+- Price-focused landing page. E2e verification. Preempt/resume API. Stage 2 GPU virtualization roadmap.
+
+Files/Areas:
+
+- `apps/web/app/welcome.tsx` — hero + timeshare section
+- `apps/api/src/routes/workloads.ts` — mode, preempt, resume
+- `docs/13-gpu-virtualization-roadmap.md` — 3-phase plan
+- `render.yaml` — production with PostgreSQL
+- `WLD/current-focus.md`
+- `TODO.md`
+- `WLD/history.md`
+- `docs/06-roadmap-12-weeks.md` — Stage 2 section
+
+Verification:
+
+- Typecheck, 9 tests, production build, e2e (register→workload→invoice).
+
 ### 2026-05-13 - Security, Persistence, and Partner-Readiness Fixes
 
 Action:

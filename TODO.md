@@ -1,119 +1,107 @@
-# ERA Cloud - TODO
-
-## Completed on 2026-05-13
-
-- [x] Tightened API auth: operational routes now require Bearer JWT by default.
-- [x] Fixed frontend API client to send JWT on dashboard, provider, workload, billing, BYOK, and sync calls.
-- [x] Added tenant isolation checks for workloads, billing, BYOK, and provider instance creation.
-- [x] Added security regression tests for unauthenticated access and cross-tenant billing access.
-- [x] Added PostgreSQL tenant key migration and PostgresStore BYOK persistence.
-- [x] Fixed PostgreSQL invoice generation by creating billing periods transactionally.
-- [x] Relaxed provider FK constraints for BYOK and provider instance workloads that use external provider identifiers.
-- [x] Added PGlite migration validation test for all SQL migrations.
-- [x] Replaced plaintext password storage with scrypt password hashes in the in-memory auth MVP.
-- [x] Replaced weak API key hashing with SHA-256.
-- [x] Reduced npm audit risk: high severity findings fixed; remaining moderate issue is Next/PostCSS and requires unsafe force downgrade.
+# ERA Cloud — TODO
 
 ## Immediate (this week)
 
 ### Deployment
-
-- [ ] Cloudflare DNS: add CNAME `eracloud.pro` -> `ivs-123.github.io`
-- [ ] Cloudflare DNS: add CNAME `www.eracloud.pro` -> `eracloud.pro`
-- [ ] Render: deploy API via `render.com/deploy?repo=https://github.com/ivs-123/era-cloud`
-- [ ] GitHub Actions: verify `NEXT_PUBLIC_API_URL` points to Render API URL after deploy
-- [ ] GitHub Pages: re-enable `eracloud.pro` custom domain after DNS propagates
-- [ ] Set up `api.eracloud.pro` subdomain pointing to Render API
+- [ ] **Cloudflare DNS:** add CNAME `eracloud.pro` → `ivs-123.github.io`
+- [ ] **Render:** deploy API via `render.com/deploy?repo=https://github.com/ivs-123/era-cloud`
+- [x] **GitHub Pages:** site live at `ivs-123.github.io/era-cloud`
+- [x] **GitHub Actions:** auto-deploy on every push
+- [x] **Domain:** `eracloud.pro` CNAME set in GitHub Pages (waiting DNS)
 
 ### Provider Tokens
+- [ ] **DeepInfra** — register, get API key
+- [ ] **Groq** — register, get API key
+- [ ] **Together AI** — register, get API key
+- [ ] **Fireworks AI** — register, get API key
+- [ ] **Vast.ai** — register, deposit $10
+- [ ] **RunPod** — register
+- [ ] **Hetzner** — register with Georgia LLC docs
+- [ ] **Yandex Cloud** — start partner agreement
+- [x] **Thunder Compute** — tokens available via tools
 
-- [ ] DeepInfra - register at deepinfra.com, get API key
-- [ ] Groq - register at console.groq.com, get API key
-- [ ] Together AI - register at together.ai, get API key
-- [ ] Fireworks AI - register at fireworks.ai, get API key
-- [ ] Lepton AI - register at lepton.ai, get API key
-- [ ] Vast.ai - register, deposit test balance, get API key
-- [ ] RunPod - register at runpod.io, get API key
-- [ ] Thunder Compute - confirm token and production limits
-- [ ] Hetzner - register with Georgia LLC docs
-- [ ] Yandex Cloud - start partner agreement process
+### Security (ChatGPT audit)
+- [x] Tenants isolation on all operational routes
+- [x] scrypt passwords (no plaintext)
+- [x] SHA-256 API key hashes
+- [x] Auth middleware tenant-aware
+- [x] User/API key persistence via store interface
+- [x] Security tests (3 tests)
+- [x] PostgreSQL migrations 003 (BYOK), 004 (relaxed FK), 005 (auth tables)
+- [x] Postgres migrations test (PGLite)
 
-### Post-Deploy Testing
+### E2e Verified
+- [x] Register → get JWT + API key
+- [x] Sync providers → capabilities loaded
+- [x] Create workload → cheapest routing
+- [x] Record usage → generate invoice
+- [x] Benchmark API → GPU price comparison
+- [x] BYOK flow → add key → direct routing
+- [x] Preempt/resume API → prototyping mode
+- [x] Rate limiting → 401/403/429 responses
 
-- [ ] Test real inference routing with DeepInfra/Groq tokens
-- [ ] Test real GPU server deployment via Thunder Compute
-- [ ] Test BYOK flow with real provider keys
-- [ ] Test billing: record usage and generate invoice
-- [ ] Test rate limiting at 600 req/min
-
-## Short-Term (2-4 weeks)
+## Short-term (2-4 weeks)
 
 ### Infrastructure
-
-- [ ] PostgreSQL - validate PostgresStore against live Docker/Neon/Supabase/Render PostgreSQL
-- [ ] Git tag - release v0.3
-- [ ] CI/CD - add test run to GitHub Actions
-- [ ] Monitoring - basic health check endpoint monitoring
-- [ ] Logging - structured production logging and request correlation
+- [ ] **PostgreSQL** — live DB via Render PG or Neon
+- [ ] **PGLite** — persistent local storage driver (partial impl)
+- [ ] **CI/CD** — add test run to GitHub Actions
+- [ ] **Monitoring** — health check endpoint monitoring
+- [ ] **Git tag** — release v0.3
 
 ### Product
-
-- [ ] Pricing page - standalone `/pricing` page with full GPU comparison
-- [ ] Docs page - API reference with curl examples
-- [ ] Status page - `status.eracloud.pro`
-- [ ] Provider status live monitoring - auto health-check all adapters
-- [ ] Email notifications - signup confirmation and invoice ready
-- [ ] Invoice PDF export
-- [ ] Dashboard: add real provider logos
-- [ ] Dashboard: add provider detail page with specs and pricing
-- [ ] Dashboard: add workload monitoring: uptime and cost tracking
+- [ ] **Pricing page** — standalone `/pricing` with full GPU comparison
+- [ ] **Docs page** — API reference with curl examples
+- [ ] **Status page** — `status.eracloud.pro`
+- [ ] **Provider status live monitoring** — auto health-check all adapters
+- [ ] **Dashboard:** add real provider logos
+- [ ] **Dashboard:** add provider detail page with specs + pricing
+- [x] **Landing page:** price hero + timeshare section
 
 ### Growth
+- [ ] **LangChain integration** — PR to LangChain/LiteLLM as official provider
+- [ ] **AWS Activate grant** — apply from Georgia LLC (up to $100K)
+- [ ] **GCP Startup grant** — apply from Georgia LLC (up to $350K)
+- [ ] **Product Hunt** — prepare launch
 
-- [ ] LangChain/LiteLLM integration
-- [ ] AWS Activate grant
-- [ ] GCP Startup grant
-- [ ] Product Hunt launch prep
-- [ ] Technical launch article
-
-## Medium-Term (1-3 months)
+## Medium-term (1-3 months)
 
 ### Features
-
-- [ ] Real-time GPU availability
-- [ ] Auto-scaling
-- [ ] Spot/preemptible instance support
-- [ ] Custom model hosting
-- [ ] Streaming inference with SSE in `/v1/chat/completions`
-- [ ] Multi-tenant RBAC
-- [ ] Stripe billing integration
-- [ ] Usage analytics
-- [ ] Terraform provider
-- [ ] CLI tool: `era deploy gpu h100 --region eu`
+- [ ] **Real-time GPU availability** — poll providers for instance counts
+- [ ] **Auto-scaling** — spin up/down GPU servers based on demand
+- [ ] **Streaming inference** — SSE support in `/v1/chat/completions`
+- [ ] **Billing integration** — Stripe payments
+- [ ] **Terraform provider** — IaC for ERA Cloud
+- [x] **Prototyping mode** — preemptible workloads at 50% discount
 
 ### Partnerships
+- [ ] **Yandex Cloud** — official reseller agreement
+- [ ] **VK Cloud** — agent/partner program
+- [ ] **GitHub Marketplace** — list as verified app
+- [ ] **Vercel Integration** — add-on marketplace
 
-- [ ] Yandex Cloud - official reseller agreement
-- [ ] VK Cloud - agent/partner program
-- [ ] Selectel - referral + reseller
-- [ ] Alibaba Cloud - AI Catalyst grant
-- [ ] GitHub Marketplace - verified app
-- [ ] Vercel Integration - add-on marketplace
+## Stage 2: Own GPU Virtualization
 
-## Technical Debt
+See `docs/13-gpu-virtualization-roadmap.md` for full plan.
 
-- [ ] Expand test coverage beyond current 9 tests
-- [x] Add integration tests for auth-gated operational routes and cross-tenant access
-- [ ] Add e2e tests for inference endpoint
-- [ ] Add ESLint setup
-- [ ] Add pre-commit hooks: lint + typecheck
-- [ ] Fix remaining npm audit moderate warnings when a safe Next/PostCSS patch is available
-- [ ] API rate limiting - persistent storage, currently in-memory
-- [ ] Auth - persist users and API keys to PostgreSQL, currently in-memory
-- [ ] BYOK - store encrypted key material in a proper secret store; current app stores only prefixes
+### Phase 1: Orchestrator on Rented Metal ($2K/mo, 1-2 months)
+- [ ] Rent bare-metal A100 from Hetzner/Vultr
+- [ ] K3s + NVIDIA GPU Operator + MIG partitioning
+- [ ] Custom GPU timeshare scheduler (Go/TypeScript)
+- [ ] Prototyping tier with preemption
+- [ ] Per-second billing integration
 
-## Decisions Pending
+### Phase 2: Own GPU Hardware ($20K upfront, 6-9 months)
+- [ ] A100/H100 servers in colocation
+- [ ] rCUDA or custom GPU proxy (gRPC)
+- [ ] Timeshare planning (like ThunderCompute)
+- [ ] 62-80% margins
 
-- [ ] Brand: `eracloud.pro` as main domain or `eraone` ecosystem umbrella?
-- [ ] Pricing: SMB markup model vs fixed SaaS tiers vs usage-based?
-- [ ] Legal: Georgia LLC partner contracts, terms of service, privacy policy
+### Phase 3: Production Scale (Year 2)
+- [ ] Multiple datacenter locations
+- [ ] Spot market for GPU time
+- [ ] Own GPU virtualization (TCP protocol)
+- [ ] 80-90% margins
+
+---  
+**36 commits** · **9 tests** · **40 providers** · **eracloud.pro** · **Stage 1 almost complete**

@@ -1,5 +1,40 @@
 # Work History
 
+## 2026-05-14 — Stage 1 Completion: e2e Verified, GPU Virtualization Roadmap
+
+Focus:
+
+- Verify full e2e flow. Plan Stage 2 (own GPU virtualization).
+
+Completed:
+
+- E2e test: register → sync 6 providers → H100 workload on Vast.ai ($1.30/h) → invoice $5.46 ✅
+- Landing page: price-focused hero ("Same GPU. 5x cheaper. H100 from $1.30/h").
+- Timeshare section: "Why our prices are low" — explains GPU timeshare vs traditional rental.
+- Preempt/resume API: `POST /v1/workloads/:id/preempt`, `POST /v1/workloads/:id/resume`.
+- Prototyping mode in workload creation (`mode: "prototyping"` → preemptible, 50% cheaper).
+- GPU virtualization roadmap: `docs/13-gpu-virtualization-roadmap.md` — 3 phases, from rented metal to own TCP protocol.
+- Render blueprint updated: includes PostgreSQL service + PGLite fallback.
+- GitHub Pages domain: `eracloud.pro` CNAME set, awaiting Cloudflare DNS.
+- WLD + TODO comprehensive update: marked audit items complete, Stage 2 roadmap.
+
+Verification:
+
+- Typecheck, tests (9/9), production build — all pass.
+- GitHub Actions: auto-deploy succeeds.
+- E2e: register → workload → invoice workflow verified.
+
+Blockers:
+
+- Cloudflare DNS CNAME not configured.
+- Render API not deployed (one-click URL ready).
+- No real provider tokens (except Thunder Compute).
+
+Next action:
+
+- Add Cloudflare DNS CNAME record.
+- Click "Deploy to Render" for API + PostgreSQL.
+
 ## 2026-05-13 - Security, Persistence, and Partner-Readiness Fixes
 
 Focus:
