@@ -13,7 +13,8 @@ const createWorkloadSchema = z.object({
   max_hourly_cost_usd: z.number().positive().optional(),
   latency_target_ms: z.number().int().positive().optional(),
   metadata: z.record(z.string(), z.string()).default({}),
-  tenant_key_id: z.string().optional()
+  tenant_key_id: z.string().optional(),
+  mode: z.enum(["prototyping", "production"]).default("production")
 });
 
 export async function registerWorkloadRoutes(app: FastifyInstance, store: EraStore) {
@@ -100,7 +101,9 @@ export async function registerWorkloadRoutes(app: FastifyInstance, store: EraSto
           ...body.metadata,
           byok_provider: tenantKey.providerName,
           byok_key_id: tenantKey.id,
-          byok_mode: "true"
+          byok_mode: "true",
+          mode: body.mode,
+          preemptible: body.mode === "prototyping" ? "true" : "false"
         }
       });
 
@@ -149,7 +152,11 @@ export async function registerWorkloadRoutes(app: FastifyInstance, store: EraSto
           maxHourlyCostUsd: body.max_hourly_cost_usd,
           latencyTargetMs: body.latency_target_ms
         },
-        metadata: body.metadata
+        metadata: {
+          ...body.metadata,
+          mode: body.mode,
+          preemptible: body.mode === "prototyping" ? "true" : "false"
+        }
       });
 
       await store.createRoutingDecision({
@@ -179,5 +186,49 @@ export async function registerWorkloadRoutes(app: FastifyInstance, store: EraSto
 
       throw error;
     }
+  });
+
+  app.post("/api/v1/workloads/:id/preempt", async (request, reply) => {
+    const params = z.object({ id: z.string().min(2) }).parse(request.params);
+    const authTenantId = getAuthTenantId(request);
+    const workload = await store.getWorkload(params.id);
+
+    if (!workload || (authTenantId && workload.tenantId !== authTenantId)) {
+      return reply.code(404).send({ error: "WORKLOAD_NOT_FOUND" });
+    }
+
+    if (workload.metadata?.preemptible !== "true") {
+      return reply.code(400).send({ error: "NOT_PREEMPTIBLE", message: "Only prototyping workloads can be preempted" });
+    }
+
+    if (workload.state === "stopped") {
+      return { data: workload, message: "Already stopped/preempted" };
+    }
+
+    const updated = await store.updateWorkloadState(params.id, "stopped");
+    return {
+      data: { ...updated, preempted_at: new Date().toISOString() },
+      message: "Workload preempted. Will resume when GPU becomes available."
+    };
+  });
+
+  app.post("/api/v1/workloads/:id/resume", async (request, reply) => {
+    const params = z.object({ id: z.string().min(2) }).parse(request.params);
+    const authTenantId = getAuthTenantId(request);
+    const workload = await store.getWorkload(params.id);
+
+    if (!workload || (authTenantId && workload.tenantId !== authTenantId)) {
+      return reply.code(404).send({ error: "WORKLOAD_NOT_FOUND" });
+    }
+
+    if (workload.state !== "stopped") {
+      return reply.code(400).send({ error: "NOT_STOPPED", message: "Only stopped workloads can be resumed" });
+    }
+
+    const updated = await store.updateWorkloadState(params.id, "running");
+    return {
+      data: { ...updated, resumed_at: new Date().toISOString() },
+      message: "Workload resumed."
+    };
   });
 }
