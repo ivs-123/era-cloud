@@ -84,6 +84,45 @@ export default function WelcomePage() {
           <Feature icon="💰" title="One Bill" desc="All your cloud servers, one invoice. Save up to 70% vs direct." />
         </div>
 
+        <div style={{
+          background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)",
+          borderRadius: 10, padding: "24px 28px", maxWidth: 700, marginBottom: 40, textAlign: "left"
+        }}>
+          <p style={{ color: "#4ade80", fontSize: 12, fontWeight: 700, textTransform: "uppercase", margin: "0 0 8px" }}>
+            WHY OUR PRICES ARE THIS LOW
+          </p>
+          <h3 style={{ color: "white", fontSize: 20, margin: "0 0 12px" }}>
+            You pay for GPU cycles, not idle servers
+          </h3>
+          <p style={{ color: "#a9b8ae", fontSize: 14, lineHeight: 1.7, margin: 0 }}>
+            Traditional clouds rent you the entire GPU — even when it's idle 85% of the time.
+            ERA Cloud routes your workloads to providers like <strong style={{ color: "white" }}>Thunder Compute</strong>,
+            who use <strong style={{ color: "white" }}>GPU virtualization and timeshare scheduling</strong> — 
+            distributing unused cycles among users, achieving near 100% utilization.
+            You pay only for active GPU time, with zero egress fees.
+          </p>
+          <div style={{ display: "flex", gap: 16, marginTop: 16, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ color: "#4ade80", fontWeight: 700 }}>85% idle</span>
+              <span style={{ color: "#6b7a6e" }}>→</span>
+              <span style={{ color: "white", fontWeight: 600 }}>&lt;5% idle</span>
+              <span style={{ color: "#a9b8ae", fontSize: 13 }}>via timeshare</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ color: "#4ade80", fontWeight: 700 }}>$3-4/h</span>
+              <span style={{ color: "#6b7a6e" }}>→</span>
+              <span style={{ color: "white", fontWeight: 600 }}>$0.78/h</span>
+              <span style={{ color: "#a9b8ae", fontSize: 13 }}>A100 via Thunder</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ color: "#4ade80", fontWeight: 700 }}>Egress fees</span>
+              <span style={{ color: "#6b7a6e" }}>→</span>
+              <span style={{ color: "white", fontWeight: 600 }}>$0</span>
+              <span style={{ color: "#a9b8ae", fontSize: 13 }}>included</span>
+            </div>
+          </div>
+        </div>
+
         <div style={stepsRowStyle}>
           <Step number="1" title="Sign up" desc="Create account, get API key instantly" />
           <Step number="2" title="Pick GPU" desc="Choose H100, A100, L40S — any region" />
