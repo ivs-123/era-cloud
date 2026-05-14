@@ -27,12 +27,6 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.4.5",
-    "jsonwebtoken": "^9.0.3",
-    "pg": "^8.20.0"
-  },
-  "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/pg": "^8.20.0"
+    "@electric-sql/pglite": "^0.4.5"
   }
 }
