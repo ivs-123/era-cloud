@@ -1,106 +1,102 @@
-# ERA Cloud: Own GPU Virtualization — Technical Roadmap
+# ERA Cloud: Own GPU Virtualization Technical Roadmap
 
-## What ThunderCompute Did
+## What ThunderCompute Proved
 
-TC split GPU from server via a proprietary TCP protocol. Instead of "rent this entire A100 for $X/hour", they built:
-- **GPU time-sharing:** multiple VMs/containers share one physical GPU, getting millisecond slices
-- **Preemption:** prototyping workloads paused when production needs the GPU
-- **Network GPU access:** GPU reachable over TCP, not just local PCIe
-- **Per-second billing:** pay only for active GPU time
+ThunderCompute split GPU access from full-server rental through a proprietary network protocol and scheduler.
 
-Result: utilization 85% idle → near 100%, prices 4-5x lower.
+Core idea:
 
-## Phase 1: No Own Hardware (Can start this month)
+- GPU time sharing: multiple workloads share one physical GPU through slices or time windows.
+- Preemption: prototyping workloads can pause when production jobs need priority.
+- Network GPU access: workloads can reach GPU capacity over the network, not only local PCIe.
+- Per-second billing: tenants pay for active GPU time instead of full idle hours.
 
-### 1.1 GPU Time-Share Orchestrator
-Use existing GPU partitioning without custom hardware:
-- **NVIDIA MIG** (A100/H100 support it natively) — splits GPU into isolated instances
-- **NVIDIA vGPU** — virtual GPU for VMs
-- **Kubernetes + GPU operator** — schedule pods with GPU fractions
+Result:
 
-Tech stack:
-```
-Kubernetes (K3s on rented bare metal)
-  ├── NVIDIA GPU Operator
-  ├── MIG partitioning (A100 → 7 slices of 10GB each)
-  ├── Custom scheduler (Go/TypeScript) — decides who gets which slice
-  └── Prometheus + billing integration (per-slice usage)
-```
+- Better utilization.
+- Lower entry price.
+- Higher gross margin when capacity is owned or leased efficiently.
 
-**Cost to start:** ~$2,000/mo — rent 1-2 A100 servers from Hetzner/Vultr, install K3s + GPU operator.
+## Phase 0: Zero Hardware
 
-### 1.2 Preemption Logic
-- Workloads tagged as `prototyping` (preemptible) or `production` (guaranteed)
-- Prototyping workloads paused/snapshotted when production needs GPU
-- State saved to NVMe, resumed when GPU is free
-- Prototyping users pay 50% less, accept interruptions
+What ERA Cloud can build before owning GPUs:
 
-### 1.3 Billing Integration
-- Track GPU-milliseconds per tenant per workload
-- Already have the billing engine — just add GPU-time metric
-- Bill per GPU-second instead of per GPU-hour
+- Timeshare billing model using usage events.
+- Preemption and resume API.
+- Prototyping tier pricing.
+- GPU-time cost estimator.
+- Provider abstraction that can later route to own capacity.
 
-## Phase 2: Own Bare Metal (Post-$100K revenue)
+## Phase 1: Orchestrator On Rented Metal
 
-### 2.1 Hardware
-- **GPUs:** A100-80GB or H100-80GB (PCIe or SXM)
-- **Servers:** 2-4 GPUs per server, AMD EPYC or Intel Xeon
-- **Networking:** 25/100GbE for GPU-to-GPU communication
-- **Storage:** NVMe for fast preemption snapshots
-- **Colocation:** Hetzner (EU), Equinix (US), DataLine/Selectel (RU)
+Goal:
 
-### 2.2 Custom GPU Virtualization (like TC's TCP protocol)
-Options:
-- **rCUDA (Remote CUDA):** open-source, allows CUDA calls over TCP/IP. Mature, used in research.
-- **NVIDIA GPUDirect RDMA:** GPU memory accessible over InfiniBand/RoCE. Fast but expensive.
-- **Custom proxy (ERA Cloud's own):** intercept CUDA API calls, serialize, send over gRPC.
+- Rent 1-2 bare-metal A100/H100 servers and operate a scheduler on top.
 
-Recommended: Start with rCUDA + optimizations, build custom proxy later.
+Technical stack:
 
-```
-[Client Container]
-     │ CUDA API calls
-     ▼
-[ERA GPU Proxy] — intercepts cudaMalloc, cudaMemcpy, kernel launches
-     │ gRPC/HTTP2
-     ▼
-[GPU Server] — physical GPU runs the actual compute
-     │
-     ▼
-[MIG Scheduler] — assigns GPU slices, enforces time limits, handles preemption
+```text
+K3s
+NVIDIA GPU Operator
+MIG partitioning
+Custom scheduler
+Prometheus/OpenTelemetry
+ERA billing integration
 ```
 
-### 2.3 Economics
-| Config | Cost/mo (colo) | Revenue potential | Margin |
-|--------|---------------|-------------------|--------|
-| 1× A100 server (2 GPUs) | $1,500 | $4,000-6,000 | 62-75% |
-| 4× A100 cluster (8 GPUs) | $6,000 | $20,000-30,000 | 70-80% |
-| 16× H100 cluster | $40,000 | $150,000-200,000 | 73-80% |
+Expected cost:
 
-### 2.4 Timeline
-| Milestone | When | Cost |
-|-----------|------|------|
-| GPU orchestrator on rented metal | Month 1-2 | $2K/mo |
-| First paying prototyping customers | Month 3 | Revenue starts |
-| Own GPUs in colocation | Month 6-9 | $20K upfront |
-| Custom GPU proxy (gRPC) | Month 9-12 | Engineering |
-| Full virtualization stack | Month 12-18 | Engineering |
+- Around $2K/month for early rented-metal experiments.
 
-## Phase 3: Production Scale (Year 2+)
+Milestones:
 
-- Multiple datacenter locations for low latency
-- Spot market for GPU time (like Vast.ai but with our virtualization)
-- Sell excess capacity back to the grid
-- GPU-to-GPU communication for distributed training
-- Automated GPU selection: MIG slice vs full GPU vs timeshare
+- Provision rented GPU metal.
+- Install K3s and NVIDIA GPU Operator.
+- Enable MIG where supported.
+- Build scheduler that assigns GPU slices by workload priority.
+- Track usage per tenant and workload.
 
-## What We Can Build TODAY (Phase 0 — Zero Hardware)
+## Phase 2: Own Bare Metal
 
-Even without GPUs, we can build the **scheduler and billing** part:
+Goal:
 
-1. **Timeshare billing model** — already have usage events + per-second tracking
-2. **Preemption API** — `POST /v1/workloads/:id/preempt` + resume
-3. **Prototyping tier pricing** — in provider capabilities, add mode: `prototyping` vs `production`
-4. **GPU time estimator** — predict cost based on model + input size
+- Buy or finance A100/H100 servers and colocate them.
 
-This makes us ready to plug in real GPUs the moment we rent/buy them.
+Architecture options:
+
+- NVIDIA MIG for physical slicing.
+- NVIDIA vGPU for VM-level isolation.
+- rCUDA or custom GPU proxy for network GPU access.
+- gRPC/HTTP2 control plane for scheduling and billing events.
+
+Economics:
+
+| Config | Approx Cost | Revenue Potential | Margin |
+| --- | --- | --- | --- |
+| 1 A100 server | $1,500/mo colo-style cost | $4K-6K/mo | 62-75% |
+| 4 A100 servers | $6K/mo | $20K-30K/mo | 70-80% |
+| 16 H100 cluster | $40K/mo | $150K-200K/mo | 73-80% |
+
+## Phase 3: Production Scale
+
+Capabilities:
+
+- Multi-region GPU capacity.
+- Spot market for GPU time.
+- Provider overflow routing.
+- Own-capacity-first routing when margin is better.
+- Distributed training support later.
+
+## Strategic Rule
+
+Do not buy hardware before demand is proven.
+
+ERA Cloud should first validate:
+
+- demand by GPU profile
+- price sensitivity
+- provider reliability gaps
+- usage patterns
+- customer willingness to pay for unified billing and failover
+
+Then buy or lease capacity only where the control plane already shows reliable demand.

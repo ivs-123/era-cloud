@@ -25,6 +25,8 @@ jobs:
           NEXT_PUBLIC_API_URL: https://api.eracloud.pro
         run: |
           npm ci --workspaces --if-present
+          npm run typecheck
+          npm test
           npm run deploy:web
 
       - name: Add CNAME

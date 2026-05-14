@@ -2,6 +2,91 @@
 
 ## Actions
 
+### 2026-05-14 - Render Health Check Hardening
+
+Action:
+
+- Wired Render to `/health` and kept health probes outside auth/rate-limit enforcement.
+
+Files/Areas:
+
+- `render.yaml`
+- `apps/api/src/middleware/rate-limiter.ts`
+- `apps/api/test/security.test.ts`
+- `apps/api/test/postgres-migrations.test.ts`
+- `TODO.md`
+- `WLD/current-focus.md`
+- `WLD/history.md`
+- `WLD/action-registry.md`
+
+Verification:
+
+- `npm.cmd run typecheck`
+- `npm.cmd test` - 12 tests
+- `npm.cmd run build`
+- `npm.cmd audit --audit-level=high`
+
+### 2026-05-14 - Render PGlite Startup Path Fix
+
+Action:
+
+- Fixed PGlite migration discovery so API startup works when launched from the repository root, matching Render's `startCommand` context.
+
+Files/Areas:
+
+- `apps/api/src/storage/pglite-store.ts`
+- `apps/api/test/pglite-store.test.ts`
+- `TODO.md`
+- `WLD/current-focus.md`
+- `WLD/history.md`
+- `WLD/action-registry.md`
+
+Verification:
+
+- `npm.cmd run typecheck`
+- `npm.cmd test` - 11 tests
+- `npm.cmd run build`
+- `npm.cmd audit --audit-level=high`
+
+Notes:
+
+- Audit still reports only the known moderate Next/PostCSS advisory; `npm audit fix --force` would install an unsafe breaking Next downgrade.
+
+### 2026-05-14 - Recheck, PGlite Driver, CI Gate
+
+Action:
+
+- Rechecked project state, implemented real PGlite storage mode, added persistence test, and added CI verification before deploy.
+
+Files/Areas:
+
+- `apps/api/src/config.ts`
+- `apps/api/src/storage/postgres-store.ts`
+- `apps/api/src/storage/pglite-store.ts`
+- `apps/api/src/storage/index.ts`
+- `apps/api/test/pglite-store.test.ts`
+- `.github/workflows/deploy.yml`
+- `.env.example`
+- `render.yaml`
+- `TODO.md`
+- `WLD/current-focus.md`
+- `WLD/history.md`
+- `WLD/action-registry.md`
+- `docs/13-gpu-virtualization-roadmap.md`
+
+Verification:
+
+- `npm.cmd run typecheck`
+- `npm.cmd test --workspace @era/api -- pglite-store`
+- `npm.cmd test`
+- `npm.cmd run build`
+- `npm.cmd audit --audit-level=high`
+
+Notes:
+
+- This fixed the `render.yaml` expectation that `STORAGE_DRIVER=pglite` is valid and added persistent disk storage for the PGlite data directory.
+- The default Render blueprint now avoids creating an unused private Postgres service; managed PostgreSQL remains a later production hardening track.
+
 ### 2026-05-14 — Stage 1 Finalization & GPU Virtualization Strategy
 
 Action:

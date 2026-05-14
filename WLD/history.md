@@ -1,5 +1,95 @@
 # Work History
 
+## 2026-05-14 - Render Health Check Hardening
+
+Focus:
+
+- Continue deployment hardening that can be completed locally before the Render deploy.
+
+Completed:
+
+- Added `healthCheckPath: /health` to `render.yaml`.
+- Excluded `/health` from API rate limiting so platform probes do not consume the anonymous request bucket.
+- Added a test proving `/health` stays public when `SKIP_AUTH=false`.
+- Stabilized the PGlite migration test by resolving migrations relative to the test file and raising its timeout to match PGlite startup cost.
+- Updated TODO/WLD deployment notes.
+
+Verification:
+
+- `npm.cmd run typecheck` passed.
+- `npm.cmd test` passed with 12 tests.
+- `npm.cmd run build` passed.
+- `npm.cmd audit --audit-level=high` reported only the existing moderate Next/PostCSS advisory; no high/critical blockers.
+
+Next action:
+
+- Deploy API on Render with `/health` checks and the PGlite disk, then connect Cloudflare DNS.
+
+## 2026-05-14 - Render PGlite Startup Path Fix
+
+Focus:
+
+- Continue WLD-driven debugging after PGlite/Render deployment preparation.
+
+Completed:
+
+- Found that PGlite migrations were resolved via `process.cwd()/../../infra/postgres/migrations`, which works from `apps/api` but can fail when Render starts the API from the repository root.
+- Replaced the fixed relative path with migration discovery from both the module directory and current working directory.
+- Added a PGlite test that starts from repository root and verifies migrations are located before creating tenant data.
+- Updated WLD/TODO test counters from 10 to 11.
+
+Verification:
+
+- `npm.cmd run typecheck` passed.
+- `npm.cmd test` passed with 11 tests.
+- `npm.cmd run build` passed.
+- `npm.cmd audit --audit-level=high` reported only the existing moderate Next/PostCSS advisory; no high/critical blockers.
+
+Blockers:
+
+- Live provider credentials are still needed.
+- Render deployment and live DNS remain external steps.
+- Live PostgreSQL validation remains pending if the project later switches from PGlite to managed Postgres.
+
+Next action:
+
+- Deploy API on Render with the PGlite disk, connect Cloudflare DNS, then add provider credentials.
+
+## 2026-05-14 - Recheck, PGlite Driver, CI Gate
+
+Focus:
+
+- Recheck WLD/TODO/code after new work from Deepseek V4 Pro and close mismatches before provider onboarding.
+
+Completed:
+
+- Confirmed persisted auth users/API keys through `EraStore`.
+- Found and fixed `STORAGE_DRIVER=pglite` mismatch by implementing `PgliteStore`.
+- Added automatic PGlite migration application.
+- Added PGlite persistence test across app restart.
+- Added typecheck and tests to GitHub Actions before GitHub Pages deploy.
+- Added persistent Render disk for PGlite data at `/var/data`.
+- Removed unused Render private Postgres service from the default PGlite deploy path.
+- Cleaned mojibake from current focus, TODO, and GPU virtualization roadmap.
+- Updated TODO counters from 9 to 10 tests.
+
+Verification:
+
+- `npm.cmd run typecheck` passed.
+- `npm.cmd test` passed with 10 tests.
+- `npm.cmd run build` passed for API and web.
+- `npm.cmd audit --audit-level=high` passed with no high/critical blockers.
+- Residual audit note: 2 moderate Next/PostCSS advisories remain; `npm audit fix --force` would downgrade Next and is not safe.
+
+Blockers:
+
+- Live provider credentials are still needed.
+- Live PostgreSQL should still be validated for production PostgresStore even though PGlite persistence now works.
+
+Next action:
+
+- Deploy API on Render, connect Cloudflare DNS, and add live provider credentials.
+
 ## 2026-05-14 — Stage 1 Completion: e2e Verified, GPU Virtualization Roadmap
 
 Focus:

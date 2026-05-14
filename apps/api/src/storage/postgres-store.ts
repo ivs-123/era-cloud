@@ -5,11 +5,29 @@ import type { ApiKeyRecord, EraStore, InvoiceLineRecord, InvoiceRecord, Provider
 
 const { Pool } = pg;
 
-export class PostgresStore implements EraStore {
-  private pool: pg.Pool;
+export interface QueryResultLike<T = any> {
+  rows: T[];
+}
 
-  constructor(connectionString: string) {
-    this.pool = new Pool({ connectionString });
+export interface QueryClientLike {
+  query<T = any>(sql: string, values?: unknown[]): Promise<QueryResultLike<T>>;
+  release(): void;
+}
+
+export interface QueryPoolLike {
+  query<T = any>(sql: string, values?: unknown[]): Promise<QueryResultLike<T>>;
+  connect(): Promise<QueryClientLike>;
+  end(): Promise<void>;
+}
+
+export class PostgresStore implements EraStore {
+  private pool: QueryPoolLike;
+
+  constructor(connectionStringOrPool: string | QueryPoolLike) {
+    this.pool =
+      typeof connectionStringOrPool === "string"
+        ? new Pool({ connectionString: connectionStringOrPool })
+        : connectionStringOrPool;
   }
 
   async close(): Promise<void> {

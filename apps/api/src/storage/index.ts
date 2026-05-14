@@ -1,5 +1,6 @@
 import type { ApiConfig } from "../config.js";
 import { MemoryStore } from "./memory-store.js";
+import { PgliteStore } from "./pglite-store.js";
 import { PostgresStore } from "./postgres-store.js";
 import type { EraStore } from "./store.js";
 
@@ -10,6 +11,10 @@ export async function createStore(config: ApiConfig): Promise<EraStore> {
     }
 
     return new PostgresStore(config.databaseUrl);
+  }
+
+  if (config.storageDriver === "pglite") {
+    return PgliteStore.create(config.pgliteDataDir);
   }
 
   return new MemoryStore();

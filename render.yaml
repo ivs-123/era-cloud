@@ -5,6 +5,11 @@ services:
     repo: https://github.com/ivs-123/era-cloud
     buildCommand: npm ci --workspaces --if-present && npm run deploy:api
     startCommand: node apps/api/dist/server.js
+    healthCheckPath: /health
+    disk:
+      name: era-cloud-api-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
@@ -20,19 +25,3 @@ services:
         generateValue: true
       - key: SKIP_AUTH
         value: "false"
-  - type: pserv
-    name: era-cloud-pg
-    runtime: image
-    image:
-      url: postgres:17-alpine
-    disk:
-      name: pgdata
-      mountPath: /var/lib/postgresql/data
-      sizeGB: 1
-    envVars:
-      - key: POSTGRES_DB
-        value: era_cloud
-      - key: POSTGRES_USER
-        value: era
-      - key: POSTGRES_PASSWORD
-        generateValue: true

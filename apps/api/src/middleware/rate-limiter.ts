@@ -27,6 +27,10 @@ export async function registerRateLimiter(app: FastifyInstance) {
   }, 60_000);
 
   app.addHook("onRequest", async (request: FastifyRequest, reply: FastifyReply) => {
+    if (request.url === "/health") {
+      return;
+    }
+
     const tenantId = request.auth?.tenantId ?? "anonymous";
     const now = Date.now();
     const entry = buckets.get(tenantId);

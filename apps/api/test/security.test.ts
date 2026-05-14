@@ -41,6 +41,21 @@ describe("auth and tenant isolation", () => {
     await app.close();
   });
 
+  it("allows unauthenticated health checks", async () => {
+    process.env.SKIP_AUTH = "false";
+    const app = await buildApp();
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/health"
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().status).toBe("ok");
+
+    await app.close();
+  });
+
   it("allows authenticated tenants to access operational API routes", async () => {
     process.env.SKIP_AUTH = "false";
     const app = await buildApp();
@@ -78,4 +93,3 @@ describe("auth and tenant isolation", () => {
     await app.close();
   });
 });
-
