@@ -17,15 +17,17 @@ import { loadConfig, type ApiConfig } from "./config.js";
 import { createStore } from "./storage/index.js";
 import { createProviderRegistry } from "./providers/registry.js";
 
-export async function buildApp(config: ApiConfig = loadConfig()) {
+export async function buildApp(config: Partial<ApiConfig> = {}) {
+  const fullConfig = { ...loadConfig(), ...config };
   const app = Fastify({
     logger: true
   });
 
-  const store = await createStore(config);
+  const store = await createStore(fullConfig);
   const providerRegistry = createProviderRegistry({
-    thunderApiUrl: config.thunderApiUrl,
-    thunderApiToken: config.thunderApiToken
+    thunderApiUrl: fullConfig.thunderApiUrl,
+    thunderApiToken: fullConfig.thunderApiToken,
+    providerTokens: fullConfig.providerTokens
   });
 
   app.addHook("onClose", async () => {

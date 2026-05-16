@@ -1,7 +1,9 @@
 import type { ProviderAdapter } from "./adapter.js";
+import type { ProviderTokens } from "../config.js";
 import { ThunderComputeAdapter } from "./thunder-compute.js";
 import { allProviderAdapters } from "./all-adapters.js";
 import { inferenceAdapters, edgeAdapters, marketplaceAdapters } from "./inference-adapters.js";
+import { createLiveAdapters } from "./live-adapters.js";
 
 export class ProviderRegistry {
   private adapters = new Map<string, ProviderAdapter>();
@@ -23,7 +25,11 @@ export class ProviderRegistry {
   }
 }
 
-export function createProviderRegistry(config: { thunderApiUrl?: string; thunderApiToken?: string }): ProviderRegistry {
+export function createProviderRegistry(config: {
+  thunderApiUrl?: string;
+  thunderApiToken?: string;
+  providerTokens?: ProviderTokens;
+}): ProviderRegistry {
   const registry = new ProviderRegistry();
 
   if (config.thunderApiUrl && config.thunderApiToken) {
@@ -35,12 +41,24 @@ export function createProviderRegistry(config: { thunderApiUrl?: string; thunder
     );
   }
 
+  const liveNames = new Set<string>();
+  if (config.providerTokens) {
+    for (const adapter of createLiveAdapters(config.providerTokens)) {
+      registry.register(adapter);
+      liveNames.add(adapter.name);
+    }
+  }
+
   for (const adapter of allProviderAdapters) {
-    registry.register(adapter);
+    if (!liveNames.has(adapter.name)) {
+      registry.register(adapter);
+    }
   }
 
   for (const adapter of inferenceAdapters) {
-    registry.register(adapter);
+    if (!liveNames.has(adapter.name)) {
+      registry.register(adapter);
+    }
   }
 
   for (const adapter of edgeAdapters) {
